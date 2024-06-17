@@ -1040,7 +1040,7 @@ await new RAGApplicationBuilder()
 
 **Note:** The library internally uses `IORedis` to work with redis. `RedisCache` constructor supports all `IORedis` constructor parameters. Check [`IORedis` documentation](https://github.com/redis/ioredis) for more detials.
 
-## Mongo
+## MongoDB
 
 You can use mongo as a cache
 
