@@ -119,7 +119,7 @@ The author(s) are looking to add core maintainers for this opensource project. R
     -   [More caches coming soon](#more-caches-coming-soon)
 -   [Conversation history](#conversation-history)
     -   [InMemory](#inmemory-default)
-    -   [MongoDb](#mongodb-1)
+    -   [MongoDB](#mongodb-1)
 -   [Langsmith Integration](#langsmith-integration)
 -   [Sample projects](#sample-projects)
 -   [Contributors](#contributors)
@@ -1039,6 +1039,25 @@ await new RAGApplicationBuilder()
 ```
 
 **Note:** The library internally uses `IORedis` to work with redis. `RedisCache` constructor supports all `IORedis` constructor parameters. Check [`IORedis` documentation](https://github.com/redis/ioredis) for more detials.
+
+## Mongo
+
+You can use mongo as a cache
+
+-   Set `MongoCache` as your cache provider on `RAGApplicationBuilder`
+
+```TS
+import { MongoCache } from '@llm-tools/embedjs/cache/mongo';
+
+const cachedb = new MongoCache({
+    uri: MONGODB_URI,
+    dbName: DB_NAME,
+    collectionName: CACHE_COLLECTION_NAME
+});
+
+await new RAGApplicationBuilder()
+.setCache(cachedb)
+```
 
 ## Bring your own cache
 
