@@ -8,15 +8,19 @@ import { Chunk, Message } from '../global/types.js';
 export class OpenAi extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:OpenAi');
     private readonly modelName: string;
+    private readonly baseURL: string;
     private model: ChatOpenAI;
 
-    constructor({ temperature, modelName }: { temperature?: number; modelName: string }) {
+    constructor({ temperature, modelName, baseURL }: { temperature?: number; modelName: string, baseURL?: string }) {
         super(temperature);
         this.modelName = modelName;
+        if (baseURL !== undefined) {
+            this.baseURL = baseURL;
+        }
     }
 
     override async init(): Promise<void> {
-        this.model = new ChatOpenAI({ temperature: this.temperature, model: this.modelName });
+        this.model = new ChatOpenAI({ temperature: this.temperature, model: this.modelName }, this.baseURL ? { baseURL: this.baseURL } : {});
     }
 
     override async runQuery(

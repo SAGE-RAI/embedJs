@@ -487,6 +487,12 @@ const ragApplication = await new RAGApplicationBuilder()
 .setModel(new OpenAi({ modelName: 'gpt-4' }))
 ```
 
+-   To use a custom model name and a custom base URL for an OpenAI-compatible API
+
+```TS
+const ragApplication = await new RAGApplicationBuilder()
+.setModel(new OpenAI({ modelName: '[YOUR_MODEL_NAME]', baseURL: '[YOUR_BASE_URL]' }))
+
 **Note:** GPT 3.5 Turbo is used as the default model if you do not specifiy one.
 
 ## Azure OpenAI
@@ -682,6 +688,21 @@ import { OpenAi3LargeEmbeddings } from '@llm-tools/embedjs';
 
 await new RAGApplicationBuilder()
 .setEmbeddingModel(new OpenAi3LargeEmbeddings())
+```
+
+## OpenAI Generic
+
+To support OpenAI-compatible API implementations with arbitrary embedding models, use the OpenAIGenericEmbeddings model, which allows you to specify a model name, base URL, and the dimensions of the returned vectors.
+
+To set it as your model of choice - 
+
+- Set `OpenAIGenericEmbeddings` as your embedding model on `RAGApplicatoinBuilder`
+
+```TS
+import { OpenAIGenericEmbeddings } from '@llm-tools/embedjs';
+
+await new RAGApplicationBuilder()
+.setEmbeddingModel(new OpenAIGenericEmbeddings({ modelName: '[YOUR_EMBEDDING_MODEL_NAME]', baseURL: '[YOUR_BASE_URL]', dimensions: YOUR_VECTOR_SIZE }))
 ```
 
 ## Ada
