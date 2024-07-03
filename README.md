@@ -492,6 +492,7 @@ const ragApplication = await new RAGApplicationBuilder()
 ```TS
 const ragApplication = await new RAGApplicationBuilder()
 .setModel(new OpenAI({ modelName: '[YOUR_MODEL_NAME]', baseURL: '[YOUR_BASE_URL]' }))
+```
 
 **Note:** GPT 3.5 Turbo is used as the default model if you do not specifiy one.
 
