@@ -12,6 +12,7 @@
         "build:esm": "tsc --outDir dist/",
         "build:cjs": "tsc --outDir dist-cjs/ -p tsconfig.cjs.json && node scripts/move-cjs-to-dist.js && rimraf dist-cjs",
         "prepublishOnly": "npm run build",
+        "prepare" : "npm run build",
         "tsc": "tsc --noEmit --pretty"
     },
     "repository": {
