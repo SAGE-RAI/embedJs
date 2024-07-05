@@ -12,7 +12,7 @@
         "build:esm": "tsc --outDir dist/",
         "build:cjs": "tsc --outDir dist-cjs/ -p tsconfig.cjs.json && node scripts/move-cjs-to-dist.js && rimraf dist-cjs",
         "prepublishOnly": "npm run build",
-        "prepare" : "npm run build",
+        "prepare": "npm run build",
         "tsc": "tsc --noEmit --pretty"
     },
     "repository": {
@@ -57,6 +57,8 @@
     ],
     "homepage": "https://github.com/llm-tools/embedjs#readme",
     "dependencies": {
+        "@azure-rest/ai-inference": "^1.0.0-beta.1",
+        "@azure/core-auth": "^1.7.2",
         "@huggingface/inference": "^2.7.0",
         "@langchain/anthropic": "^0.2.1",
         "@langchain/cohere": "^0.1.0",

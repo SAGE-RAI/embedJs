@@ -86,6 +86,7 @@ The author(s) are looking to add core maintainers for this opensource project. R
 -   [LLMs](#llms)
     -   [OpenAI](#openai)
     -   [Azure OpenAI](#azure-openai)
+    -   [Azure AI Inference] (#azure-ai)
     -   [Mistral](#mistral)
     -   [Hugging Face](#hugging-face)
     -   [Anthropic](#anthropic)
@@ -525,6 +526,21 @@ AZURE_OPENAI_API_DEPLOYMENT_NAME=gpt-35-turbo
 ```
 
 You can all set and can now run the Azure OpenAI LLMs using the [`OpenAi` model](#openai) steps detailed above.
+
+## Azure AI Inference
+
+Azure offers a generic [Model Inference API](https://learn.microsoft.com/en-us/azure/ai-studio/reference/reference-model-inference-api) to interact with a range of models deployed on Azure. To use this, you will need an
+endpoint URI and an API key, which you can get by deploying a supported model in [Azure AI Studio](https://ai.azure.com) as 'serverless' or 'managed inference'. Once you have obtained an endpoint and key, set Azure AI as your LLM of choice - 
+
+```TS
+const ragApplication = await new RAGApplicationBuilder()
+.setModel(new AzureAIInferenceModel({ 
+    modelName: "<YOUR_MODEL_NAME_HERE>", // this actually is entirely ignored; will remove soon.
+    temperature: 0.2, // or whatever temperature you'd like
+    maxNewTokens: 128, // or however many max tokens you'd like 
+    endpointUrl: "<YOUR_ENDPOINT_URL_HERE>",
+    apiKey: "<YOUR_API_KEY_HERE>" }) )
+```
 
 ## Mistral
 
