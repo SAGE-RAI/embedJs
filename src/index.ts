@@ -12,6 +12,9 @@ import { BaseLoader } from './interfaces/base-loader.js';
 import { BaseDb } from './interfaces/base-db.js';
 import { BaseEmbeddings } from './interfaces/base-embeddings.js';
 import { BaseCache } from './interfaces/base-cache.js';
+import { BaseConversations } from './interfaces/base-conversations.js';
+import { InMemoryConversations } from './conversations/memory-conversations.js';
+import { MongoConversations } from './conversations/mongo-conversations.js';
 import { MongoCache } from './cache/mongo-cache.js';
 import { YoutubeChannelLoader } from './loaders/youtube-channel-loader.js';
 import { YoutubeSearchLoader } from './loaders/youtube-search-loader.js';
@@ -59,6 +62,9 @@ export {
     BaseLoader,
     BaseEmbeddings,
     BaseModel,
+    BaseConversations,
+    InMemoryConversations,
+    MongoConversations,
     SIMPLE_MODELS,
     OpenAi,
     AdaEmbeddings,
