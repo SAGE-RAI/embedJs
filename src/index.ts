@@ -37,6 +37,7 @@ import { GeckoEmbedding } from './embeddings/gecko-embedding.js';
 import { VertexAI } from './models/vertexai-model.js';
 import { Ollama } from './models/ollama-model.js';
 import { AzureAIInferenceModel } from './models/azure-model.js';
+import { MongoDb } from './vectorDb/mongo-db.js';
 
 export {
     RAGApplication,
@@ -65,6 +66,7 @@ export {
     BaseConversations,
     InMemoryConversations,
     MongoConversations,
+    MongoDb,
     SIMPLE_MODELS,
     OpenAi,
     AdaEmbeddings,
