@@ -35,22 +35,41 @@ export class AzureAIInferenceModel extends BaseModel {
         supportingContext: Chunk[],
         pastConversations: Message[],
     ): Promise<string> {
-        const pastMessages = [system];
-        pastMessages.push(`Data: ${supportingContext.map((s) => s.pageContent).join('; ')}`);
+        const pastMessages = [
+            {
+                role: "system",
+                content: system
+            }
+        ];
+        pastMessages.push({
+            role: "system",
+            content: `Data: ${supportingContext.map((s) => s.pageContent).join('; ')}`
+        });
 
         pastMessages.push.apply(
             pastMessages,
             pastConversations.map((c) => {
-                if (c.sender === 'AI') return `AI: ${c.message}`;
-                else if (c.sender === 'SYSTEM') return `SYSTEM: ${c.message}`;
-                else return `HUMAN: ${c.message}`;
+                if (c.sender === 'AI') return {
+                    role: "assistant",
+                    content: c.message
+                };
+                else if (c.sender === 'SYSTEM') return {
+                    role: "system",
+                    content: c.message
+                };
+                else return {
+                    role: "user",
+                    content: c.message
+                };
             }),
         );
 
-        pastMessages.push(`Question: ${userQuery}?`);
-        pastMessages.push('Answer: ');
+        pastMessages.push({
+            role: "user",
+            content: userQuery
+        });
 
-        const finalPrompt = pastMessages.join('\n');
+        const finalPrompt = pastMessages//.join('\n');
         // this.debug('Final prompt being sent to Azure - ', finalPrompt);
         this.debug(`Executing Azure AI Inference '${this.modelName}' model with prompt -`, userQuery);
         const response = await this.model.ModelClient.path("chat/completions").post({
