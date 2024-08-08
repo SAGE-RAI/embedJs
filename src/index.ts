@@ -26,12 +26,15 @@ import { AdaEmbeddings } from './embeddings/ada-embeddings.js';
 import { CohereEmbeddings } from './embeddings/cohere-embeddings.js';
 import { OpenAi3LargeEmbeddings } from './embeddings/openai-3large-embeddings.js';
 import { OpenAi3SmallEmbeddings } from './embeddings/openai-3small-embeddings.js';
+import { OpenAiGenericEmbeddings } from './embeddings/openai-generic-embeddings.js';
 import { Mistral } from './models/mistral-model.js';
 import { HuggingFace } from './models/huggingface-model.js';
 import { Anthropic } from './models/anthropic-model.js';
+import { AzureAIInferenceModel } from './models/azure-model.js';
 import { GeckoEmbedding } from './embeddings/gecko-embedding.js';
 import { VertexAI } from './models/vertexai-model.js';
 import { Ollama } from './models/ollama-model.js';
+
 
 export {
     RAGApplication,
@@ -59,9 +62,11 @@ export {
     SIMPLE_MODELS,
     OpenAi,
     AdaEmbeddings,
+    AzureAIInferenceModel,
     CohereEmbeddings,
     OpenAi3LargeEmbeddings,
     OpenAi3SmallEmbeddings,
+    OpenAiGenericEmbeddings,
     Mistral,
     HuggingFace,
     Anthropic,
