@@ -12,7 +12,7 @@ export class AzureAIInferenceModel extends BaseModel {
     private readonly maxNewTokens: number;
     private readonly endpointUrl?: string;
     private readonly apiKey?: string;
-    private model: { ModelClient };
+    private model: any;
 
     constructor(params?: { modelName?: string; temperature?: number; maxNewTokens?: number; endpointUrl?: string; apiKey?: string }) {
         super(params?.temperature);
@@ -24,9 +24,9 @@ export class AzureAIInferenceModel extends BaseModel {
     }
 
     override async init(): Promise<void> {
-        this.model = new (ModelClient as any)(ModelClient(
+        this.model = ModelClient(
             this.endpointUrl,
-            new AzureKeyCredential(this.apiKey)));
+            new AzureKeyCredential(this.apiKey));
     }
 
     override async runQuery(
@@ -72,7 +72,7 @@ export class AzureAIInferenceModel extends BaseModel {
         const finalPrompt = pastMessages//.join('\n');
         // this.debug('Final prompt being sent to Azure - ', finalPrompt);
         this.debug(`Executing Azure AI Inference '${this.modelName}' model with prompt -`, userQuery);
-        const response = await this.model.ModelClient.path("chat/completions").post({
+        const response = await this.model.path("chat/completions").post({
              body: {
                 messages: finalPrompt,
                 max_tokens: this.maxNewTokens,
