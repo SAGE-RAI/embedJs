@@ -86,7 +86,7 @@ The author(s) are looking to add core maintainers for this opensource project. R
 -   [LLMs](#llms)
     -   [OpenAI](#openai)
     -   [Azure OpenAI](#azure-openai)
-    -   [Azure AI Inference] (#azure-ai)
+    -   [Azure AI Inference](#azure-ai)
     -   [Mistral](#mistral)
     -   [Hugging Face](#hugging-face)
     -   [Anthropic](#anthropic)
