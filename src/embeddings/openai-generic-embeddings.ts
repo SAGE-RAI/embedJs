@@ -12,8 +12,8 @@ export class OpenAiGenericEmbeddings implements BaseEmbeddings {
     private model: OpenAIEmbeddings;
     private readonly dimensions: number;
 
-    constructor({ modelName, baseURL, dimensions} : { modelName: string, baseURL : string, dimensions: number}) {
-        this.model = new OpenAIEmbeddings({ modelName: modelName, maxConcurrency: 3, maxRetries: 5 }, { baseURL: baseURL});
+    constructor({ modelName, baseURL, apiKey, dimensions} : { modelName: string, baseURL : string, apiKey?: string, dimensions: number}) {
+        this.model = new OpenAIEmbeddings({ modelName: modelName, maxConcurrency: 3, maxRetries: 5, apiKey: apiKey ?? undefined }, { baseURL: baseURL});
         this.dimensions = dimensions;
     }
 

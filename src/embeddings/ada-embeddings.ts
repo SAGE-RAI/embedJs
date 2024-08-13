@@ -4,8 +4,8 @@ import { BaseEmbeddings } from '../interfaces/base-embeddings.js';
 export class AdaEmbeddings implements BaseEmbeddings {
     private model: OpenAIEmbeddings;
 
-    constructor() {
-        this.model = new OpenAIEmbeddings({ modelName: 'text-embedding-ada-002', maxConcurrency: 3, maxRetries: 5 });
+    constructor( params? : { apiKey?: string}) {
+        this.model = new OpenAIEmbeddings({ modelName: 'text-embedding-ada-002', maxConcurrency: 3, maxRetries: 5, apiKey: params?.apiKey ?? undefined });
     }
 
     getDimensions(): number {
