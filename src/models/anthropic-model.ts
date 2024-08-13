@@ -2,7 +2,7 @@ import createDebugMessages from 'debug';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 
-import { BaseModel } from '../interfaces/base-model.js';
+import { BaseModel, BaseGenerationParams } from '../interfaces/base-model.js';
 import { Chunk, Message } from '../global/types.js';
 
 export class Anthropic extends BaseModel {
@@ -10,8 +10,8 @@ export class Anthropic extends BaseModel {
     private readonly modelName: string;
     private model: ChatAnthropic;
 
-    constructor(params?: { temperature?: number; modelName?: string }) {
-        super(params?.temperature);
+    constructor(params?: BaseGenerationParams) {
+        super(params);
         this.modelName = params?.modelName ?? 'claude-3-sonnet-20240229';
     }
 

@@ -1,7 +1,7 @@
 import createDebugMessages from 'debug';
 import ModelClient from "@azure-rest/ai-inference";
 import { isUnexpected } from "@azure-rest/ai-inference";
-import { BaseModel } from '../interfaces/base-model.js';
+import { BaseGenerationParams, BaseModel } from '../interfaces/base-model.js';
 import { Chunk, Message } from '../global/types.js';
 import { AzureKeyCredential } from '@azure/core-auth';
 
@@ -13,8 +13,8 @@ export class AzureAIInferenceModel extends BaseModel {
     private readonly apiKey?: string;
     private model: any;
 
-    constructor(params?: { temperature?: number; maxNewTokens?: number; endpointUrl?: string; apiKey?: string }) {
-        super(params?.temperature);
+    constructor(params?: BaseGenerationParams) {
+        super(params);
 
         this.endpointUrl = params?.endpointUrl;
         this.apiKey = params?.apiKey;

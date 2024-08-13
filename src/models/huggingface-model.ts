@@ -1,7 +1,7 @@
 import createDebugMessages from 'debug';
 import { HuggingFaceInference } from '@langchain/community/llms/hf';
 
-import { BaseModel } from '../interfaces/base-model.js';
+import { BaseGenerationParams, BaseModel } from '../interfaces/base-model.js';
 import { Chunk, Message } from '../global/types.js';
 
 export class HuggingFace extends BaseModel {
@@ -12,8 +12,8 @@ export class HuggingFace extends BaseModel {
     private readonly endpointUrl?: string;
     private model: HuggingFaceInference;
 
-    constructor(params?: { modelName?: string; temperature?: number; maxNewTokens?: number; endpointUrl?: string }) {
-        super(params?.temperature);
+    constructor(params?: BaseGenerationParams) {
+        super(params);
 
         this.endpointUrl = params?.endpointUrl;
         this.maxNewTokens = params?.maxNewTokens ?? 300;

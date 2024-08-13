@@ -10,8 +10,8 @@ export abstract class BaseModel {
     private readonly baseDebug = createDebugMessages('embedjs:model:BaseModel');
     private readonly _temperature?: number;
 
-    constructor(temperature?: number) {
-        this._temperature = temperature;
+    constructor(params? : BaseGenerationParams) {
+        this._temperature = params.temperature;
     }
 
     public static setDefaultTemperature(temperature?: number) {
@@ -97,4 +97,16 @@ export abstract class BaseModel {
         supportingContext: Chunk[],
         pastConversations: Message[],
     ): Promise<any>;
+}
+
+export interface BaseModelParams {
+    modelName? : string,
+    apiKey? : string,
+    baseUrl? : string
+}
+
+export interface BaseGenerationParams extends BaseModelParams {
+    endpointUrl? : string,
+    temperature? : number,
+    maxNewTokens? : number
 }

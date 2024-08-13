@@ -6,15 +6,21 @@
 */
 
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { BaseEmbeddings } from '../interfaces/base-embeddings.js';
+import { BaseEmbeddings, BaseEmbeddingsParams } from '../interfaces/base-embeddings.js';
 
 export class OpenAiGenericEmbeddings implements BaseEmbeddings {
     private model: OpenAIEmbeddings;
     private readonly dimensions: number;
 
-    constructor({ modelName, baseURL, dimensions} : { modelName: string, baseURL : string, dimensions: number}) {
-        this.model = new OpenAIEmbeddings({ modelName: modelName, maxConcurrency: 3, maxRetries: 5 }, { baseURL: baseURL});
-        this.dimensions = dimensions;
+    constructor(params? : BaseEmbeddingsParams) {
+        this.model = new OpenAIEmbeddings({ 
+            modelName: params?.modelName, 
+            maxConcurrency: 3, 
+            maxRetries: 5, 
+            apiKey: params?.apiKey ?? undefined
+        },
+             { baseURL: params?.baseUrl});
+        this.dimensions = params?.dimension;
     }
 
     getDimensions(): number {

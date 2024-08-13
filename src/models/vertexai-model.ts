@@ -3,15 +3,15 @@ import { ChatVertexAI } from '@langchain/google-vertexai';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 import { Chunk, Message } from '../global/types.js';
-import { BaseModel } from '../interfaces/base-model.js';
+import { BaseGenerationParams, BaseModel } from '../interfaces/base-model.js';
 
 export class VertexAI extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:VertexAI');
     private model: ChatVertexAI;
 
-    constructor({ temperature, modelName }: { temperature?: number; modelName?: string }) {
-        super(temperature);
-        this.model = new ChatVertexAI({ model: modelName ?? 'gemini-1.0-pro' });
+    constructor(params? : BaseGenerationParams) {
+        super(params);
+        this.model = new ChatVertexAI({ model: params.modelName ?? 'gemini-1.0-pro' });
     }
 
     override async runQuery(

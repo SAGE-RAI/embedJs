@@ -3,17 +3,17 @@ import { Ollama as ChatOllamaAI } from '@langchain/community/llms/ollama';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 import { Chunk, Message } from '../global/types.js';
-import { BaseModel } from '../interfaces/base-model.js';
+import { BaseGenerationParams, BaseModel } from '../interfaces/base-model.js';
 
 export class Ollama extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:Ollama');
     private model: ChatOllamaAI;
 
-    constructor({ baseUrl, temperature, modelName }: { baseUrl?: string; temperature?: number; modelName?: string }) {
-        super(temperature);
+    constructor(params? : BaseGenerationParams) {
+        super(params);
         this.model = new ChatOllamaAI({
-            model: modelName ?? 'llama2',
-            baseUrl: baseUrl ?? 'http://localhost:11434',
+            model: params.modelName ?? 'llama2',
+            baseUrl: params.baseUrl ?? 'http://localhost:11434',
         });
     }
 

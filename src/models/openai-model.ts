@@ -2,25 +2,30 @@ import createDebugMessages from 'debug';
 import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 
-import { BaseModel } from '../interfaces/base-model.js';
+import { BaseGenerationParams, BaseModel } from '../interfaces/base-model.js';
 import { Chunk, Message } from '../global/types.js';
 
 export class OpenAi extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:OpenAi');
     private readonly modelName: string;
     private readonly baseURL: string;
+    private readonly apiKey?: string;
     private model: ChatOpenAI;
 
-    constructor({ temperature, modelName, baseURL }: { temperature?: number; modelName: string, baseURL?: string }) {
-        super(temperature);
-        this.modelName = modelName;
-        if (baseURL !== undefined) {
-            this.baseURL = baseURL;
+    constructor(params? : BaseGenerationParams) {
+        super(params);
+        this.modelName = params.modelName;
+        if (params.baseUrl !== undefined) {
+            this.baseURL = params.baseUrl;
+        }
+        if (params.apiKey !== undefined) {
+            this.apiKey = params.apiKey
         }
     }
 
     override async init(): Promise<void> {
-        this.model = new ChatOpenAI({ temperature: this.temperature, model: this.modelName }, this.baseURL ? { baseURL: this.baseURL } : {});
+        this.model = new ChatOpenAI({ temperature: this.temperature, model: this.modelName, apiKey: this.apiKey },
+            this.baseURL ? { baseURL: this.baseURL } : {});
     }
 
     override async runQuery(

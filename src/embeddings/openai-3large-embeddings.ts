@@ -1,23 +1,24 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { BaseEmbeddings } from '../interfaces/base-embeddings.js';
+import { BaseEmbeddings, BaseEmbeddingsParams } from '../interfaces/base-embeddings.js';
 
 export class OpenAi3LargeEmbeddings implements BaseEmbeddings {
     private model: OpenAIEmbeddings;
-    private readonly dynamicDimension: number;
+    private readonly dimension: number;
 
-    constructor(params?: { dynamicDimension?: number }) {
-        this.dynamicDimension = params?.dynamicDimension ?? 3072;
+    constructor(params?: BaseEmbeddingsParams) {
+        this.dimension = params?.dimension ?? 3072;
 
         this.model = new OpenAIEmbeddings({
             modelName: 'text-embedding-3-large',
             maxConcurrency: 3,
             maxRetries: 5,
-            dimensions: this.dynamicDimension,
+            apiKey: params?.apiKey ?? undefined,
+            dimensions: this.dimension,
         });
     }
 
     getDimensions(): number {
-        return this.dynamicDimension;
+        return this.dimension;
     }
 
     embedDocuments(texts: string[]): Promise<number[][]> {

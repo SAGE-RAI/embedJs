@@ -3,23 +3,15 @@ import { ChatMistralAI } from '@langchain/mistralai';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 import { Chunk, Message } from '../global/types.js';
-import { BaseModel } from '../interfaces/base-model.js';
+import { BaseGenerationParams, BaseModel } from '../interfaces/base-model.js';
 
 export class Mistral extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:Mistral');
     private model: ChatMistralAI;
 
-    constructor({
-        temperature,
-        accessToken,
-        modelName,
-    }: {
-        temperature?: number;
-        accessToken: string;
-        modelName?: string;
-    }) {
-        super(temperature);
-        this.model = new ChatMistralAI({ apiKey: accessToken, model: modelName ?? 'mistral-medium' });
+    constructor(params? : BaseGenerationParams) {
+        super(params);
+        this.model = new ChatMistralAI({ apiKey: params.apiKey, model: params.modelName ?? 'mistral-medium' });
     }
 
     override async runQuery(
