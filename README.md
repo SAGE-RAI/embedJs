@@ -86,6 +86,7 @@ The author(s) are looking to add core maintainers for this opensource project. R
 -   [LLMs](#llms)
     -   [OpenAI](#openai)
     -   [Azure OpenAI](#azure-openai)
+    -   [Azure AI Inference](#azure-ai)
     -   [Mistral](#mistral)
     -   [Hugging Face](#hugging-face)
     -   [Anthropic](#anthropic)
@@ -487,6 +488,13 @@ const ragApplication = await new RAGApplicationBuilder()
 .setModel(new OpenAi({ modelName: 'gpt-4' }))
 ```
 
+-   To use a custom model name and a custom base URL for an OpenAI-compatible API
+
+```TS
+const ragApplication = await new RAGApplicationBuilder()
+.setModel(new OpenAI({ modelName: '[YOUR_MODEL_NAME]', baseURL: '[YOUR_BASE_URL]' }))
+```
+
 **Note:** GPT 3.5 Turbo is used as the default model if you do not specifiy one.
 
 ## Azure OpenAI
@@ -518,6 +526,21 @@ AZURE_OPENAI_API_DEPLOYMENT_NAME=gpt-35-turbo
 ```
 
 You can all set and can now run the Azure OpenAI LLMs using the [`OpenAi` model](#openai) steps detailed above.
+
+## Azure AI Inference
+
+Azure offers a generic [Model Inference API](https://learn.microsoft.com/en-us/azure/ai-studio/reference/reference-model-inference-api) to interact with a range of models deployed on Azure. To use this, you will need an
+endpoint URI and an API key, which you can get by deploying a supported model in [Azure AI Studio](https://ai.azure.com) as 'serverless' or 'managed inference'. Once you have obtained an endpoint and key, set Azure AI as your LLM of choice - 
+
+```TS
+const ragApplication = await new RAGApplicationBuilder()
+.setModel(new AzureAIInferenceModel({ 
+    endpointUrl: "<YOUR_ENDPOINT_URL_HERE>",
+    apiKey: "<YOUR_API_KEY_HERE>" 
+    temperature: 0.2, // or whatever temperature you'd like
+    maxNewTokens: 128, // or however many max tokens you'd like 
+}) )
+    ```
 
 ## Mistral
 
@@ -682,6 +705,21 @@ import { OpenAi3LargeEmbeddings } from '@llm-tools/embedjs';
 
 await new RAGApplicationBuilder()
 .setEmbeddingModel(new OpenAi3LargeEmbeddings())
+```
+
+## OpenAI Generic
+
+To support OpenAI-compatible API implementations with arbitrary embedding models, use the OpenAIGenericEmbeddings model, which allows you to specify a model name, base URL, and the dimensions of the returned vectors.
+
+To set it as your model of choice - 
+
+- Set `OpenAIGenericEmbeddings` as your embedding model on `RAGApplicatoinBuilder`
+
+```TS
+import { OpenAIGenericEmbeddings } from '@llm-tools/embedjs';
+
+await new RAGApplicationBuilder()
+.setEmbeddingModel(new OpenAIGenericEmbeddings({ modelName: '[YOUR_EMBEDDING_MODEL_NAME]', baseURL: '[YOUR_BASE_URL]', dimensions: YOUR_VECTOR_SIZE }))
 ```
 
 ## Ada
