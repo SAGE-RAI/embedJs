@@ -380,4 +380,51 @@ export class RAGApplication {
         return result;
     }
 
+     /**
+     * Executes a query based on the conversation history without modifying the conversation record.
+     * This method is useful for querying information about the conversation itself, such as changes in topic
+     * or to retrieve newer chunks of context.
+     *
+     * @param {string} userQuery - The user query input provided by the user, which is used to generate
+     * the response based on the context and query.
+     * @param {string} [systemQuery] - An optional parameter specifying the system query or prompt to be sent
+     * to the model. If not provided, the method uses a default query template.
+     * @param {string} [conversationId='default'] - An optional parameter that represents the unique identifier
+     * for the conversation. This is used to fetch conversation history for the specified conversation. If
+     * not provided, defaults to 'default'.
+     * @param {Chunk[]} [context] - Optional parameter for the context chunks to be used in the query. If not
+     * provided, the method will retrieve relevant context based on the user query.
+     *
+     * @returns {Promise<any>} A Promise that resolves to the result of the query. The result is usually
+     * a response from the LLM model based on the system query, user query, and context.
+     *
+     * @throws {Error} Throws an error if the LLM model is not set.
+     */
+    public async silentConversationQuery(
+        userQuery: string,
+        systemQuery?: string,
+        conversationId: string = 'default',
+        context?: Chunk[]
+    ): Promise<any> {
+        if (!this.model) {
+            throw new Error('LLM Not set; query method not available');
+        }
+
+        if (!context) {
+            context = await this.getContext(userQuery);
+            const sources = [...new Set(context.map((chunk) => chunk.metadata.source))];
+            this.debug(
+                `Query resulted in ${context.length} chunks after filtration; chunks from ${sources.length} unique sources.`,
+            );
+        }
+
+        // Use a default query template if systemQuery is not provided
+        systemQuery = systemQuery || this.queryTemplate;
+
+        const result = await this.model.silentConversationQuery(systemQuery, userQuery, context, conversationId);
+
+        return result;
+    }
+
+
 }
