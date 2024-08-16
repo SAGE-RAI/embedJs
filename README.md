@@ -700,8 +700,6 @@ The `text-embedding-3-small` is a new standard embedding model released by OpenA
 - To use an API key other than the one set in OPENAI_API_KEY (e.g., to use different OpenAI-compatible embedding and 
 generation services)
 
-
-
 ```TS
 
 const ragApplication = await new RAGApplicationBuilder()
