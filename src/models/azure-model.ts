@@ -5,6 +5,8 @@ import { BaseModel } from '../interfaces/base-model.js';
 import { Chunk, Message } from '../global/types.js';
 import { AzureKeyCredential } from '@azure/core-auth';
 
+import { traceable } from "langsmith/traceable";
+
 export class AzureAIInferenceModel extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:AzureAIInference');
 
@@ -70,18 +72,39 @@ export class AzureAIInferenceModel extends BaseModel {
         const finalPrompt = pastMessages//.join('\n');
         // this.debug('Final prompt being sent to Azure - ', finalPrompt);
         this.debug(`Executing Azure AI Inference '${this.endpointUrl}' model with prompt -`, userQuery);
-        const response = await this.model.path("chat/completions").post({
-             body: {
-                messages: finalPrompt,
-                max_tokens: this.maxNewTokens,
-                temperature: this.temperature
-            }
-            });
-        if (isUnexpected(response)) {
-            throw response.body.error;
-        }
+        // const response = await this.model.path("chat/completions").post({
+        //      body: {
+        //         messages: finalPrompt,
+        //         max_tokens: this.maxNewTokens,
+        //         temperature: this.temperature
+        //     }
+        //     });
+        // if (isUnexpected(response)) {
+        //     throw response.body.error;
+        // }
 
-        const result = response.body.choices[0].message.content
+        const chatModel = traceable(
+            async ({ messages }: { messages: { role: string; content: string }[] }) => {
+                const response = await this.model.path("chat/completions").post({
+                    body: {
+                        messages: messages,
+                        max_tokens: this.maxNewTokens,
+                        temperature: this.temperature
+                    }
+                });
+                if (isUnexpected(response)) {
+                    throw response.body.error;
+                }
+                return response.body;
+            },
+            {
+                run_type: "llm",
+                name: "chat_model",
+                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model" },
+            }
+        );
+
+        const result = (await chatModel( { messages: finalPrompt})).choices[0].message.content
         this.debug('Azure response -', result);
         return result;
     }
