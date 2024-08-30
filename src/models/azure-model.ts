@@ -4,7 +4,6 @@ import { isUnexpected } from "@azure-rest/ai-inference";
 import { BaseModel } from '../interfaces/base-model.js';
 import { Chunk, Message } from '../global/types.js';
 import { AzureKeyCredential } from '@azure/core-auth';
-
 import { traceable } from "langsmith/traceable";
 
 export class AzureAIInferenceModel extends BaseModel {
@@ -69,19 +68,9 @@ export class AzureAIInferenceModel extends BaseModel {
             content: userQuery
         });
 
-        const finalPrompt = pastMessages//.join('\n');
-        // this.debug('Final prompt being sent to Azure - ', finalPrompt);
+        const finalPrompt = pastMessages
+       
         this.debug(`Executing Azure AI Inference '${this.endpointUrl}' model with prompt -`, userQuery);
-        // const response = await this.model.path("chat/completions").post({
-        //      body: {
-        //         messages: finalPrompt,
-        //         max_tokens: this.maxNewTokens,
-        //         temperature: this.temperature
-        //     }
-        //     });
-        // if (isUnexpected(response)) {
-        //     throw response.body.error;
-        // }
 
         const chatModel = traceable(
             async ({ messages }: { messages: { role: string; content: string }[] }) => {
