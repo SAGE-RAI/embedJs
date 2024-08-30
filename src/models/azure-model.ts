@@ -88,12 +88,12 @@ export class AzureAIInferenceModel extends BaseModel {
             },
             {
                 run_type: "llm",
-                name: "chat_model",
-                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model" },
+                name: "ChatAzureAI",
+                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model", ls_model_type: "chat", ls_temperature: this.temperature },
             }
         );
 
-        const result = (await chatModel( { messages: finalPrompt})).choices[0].message.content
+        const result = (await chatModel({ messages: finalPrompt })).choices[0].message.content
         this.debug('Azure response -', result);
         return result;
     }
