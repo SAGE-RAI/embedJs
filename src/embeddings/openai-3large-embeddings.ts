@@ -5,7 +5,7 @@ export class OpenAi3LargeEmbeddings implements BaseEmbeddings {
     private model: OpenAIEmbeddings;
     private readonly dynamicDimension: number;
 
-    constructor(params?: { dynamicDimension?: number }) {
+    constructor(params?: { apiKey?: string, dynamicDimension?: number }) {
         this.dynamicDimension = params?.dynamicDimension ?? 3072;
 
         this.model = new OpenAIEmbeddings({
@@ -13,6 +13,7 @@ export class OpenAi3LargeEmbeddings implements BaseEmbeddings {
             maxConcurrency: 3,
             maxRetries: 5,
             dimensions: this.dynamicDimension,
+            apiKey: params?.apiKey ?? undefined
         });
     }
 
