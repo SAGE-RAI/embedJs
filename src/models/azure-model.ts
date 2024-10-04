@@ -12,13 +12,15 @@ export class AzureAIInferenceModel extends BaseModel {
     private readonly maxNewTokens: number;
     private readonly endpointUrl?: string;
     private readonly apiKey?: string;
+    private readonly instanceId?: string; // get the instance ID 
     private model: any;
 
-    constructor(params?: { temperature?: number; maxNewTokens?: number; endpointUrl?: string; apiKey?: string }) {
+    constructor(params?: { temperature?: number; maxNewTokens?: number; endpointUrl?: string; apiKey?: string; instanceId?: string}) {
         super(params?.temperature);
 
         this.endpointUrl = params?.endpointUrl;
         this.apiKey = params?.apiKey;
+        this.instanceId = params?.instanceId ?? undefined; // If no instanceId is provided, it defaults to undefined
         this.maxNewTokens = params?.maxNewTokens ?? 300;
     }
 
@@ -89,7 +91,7 @@ export class AzureAIInferenceModel extends BaseModel {
             {
                 run_type: "llm",
                 name: "ChatAzureAI",
-                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model", ls_model_type: "chat", ls_temperature: this.temperature },
+                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model", ls_model_type: "chat", ls_temperature: this.temperature, instance_id: this.instanceId || "undefined" },
             }
         );
 
