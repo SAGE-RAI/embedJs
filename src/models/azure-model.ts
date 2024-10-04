@@ -91,7 +91,7 @@ export class AzureAIInferenceModel extends BaseModel {
             {
                 run_type: "llm",
                 name: "ChatAzureAI",
-                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model", ls_model_type: "chat", ls_temperature: this.temperature, instance_id: this.instanceId || "undefined" },
+                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model", ls_model_type: "chat", ls_temperature: this.temperature, ls_raginstance: this.instanceId || "undefined" },
             }
         );
 
