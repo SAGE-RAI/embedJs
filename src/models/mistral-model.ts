@@ -11,15 +11,18 @@ export class Mistral extends BaseModel {
 
     constructor({
         temperature,
-        accessToken,
+        // accessToken,
         modelName,
+        apiKey,
+        endpoint,
     }: {
         temperature?: number;
-        accessToken: string;
+        apiKey: string;
         modelName?: string;
+        endpoint?: string;
     }) {
         super(temperature);
-        this.model = new ChatMistralAI({ apiKey: accessToken, model: modelName ?? 'mistral-medium' });
+        this.model = new ChatMistralAI({ apiKey: apiKey, model: modelName ?? 'mistral-medium', endpoint: endpoint });
     }
 
     override async runQuery(

@@ -8,15 +8,20 @@ import { Chunk, Message } from '../global/types.js';
 export class Anthropic extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:Anthropic');
     private readonly modelName: string;
+    private readonly apiKey: string;
+    private readonly baseURL: string;
     private model: ChatAnthropic;
 
-    constructor(params?: { temperature?: number; modelName?: string }) {
+    constructor(params?: { temperature?: number; modelName?: string; apiKey?: string; baseURL?: string }) {
         super(params?.temperature);
         this.modelName = params?.modelName ?? 'claude-3-sonnet-20240229';
+        this.apiKey = params?.apiKey;
+        this.baseURL = params?.baseURL;
     }
 
+    
     override async init(): Promise<void> {
-        this.model = new ChatAnthropic({ temperature: this.temperature, model: this.modelName });
+        this.model = new ChatAnthropic({ temperature: this.temperature, model: this.modelName, anthropicApiKey: this.apiKey, anthropicApiUrl: this.baseURL });
     }
 
     override async runQuery(
@@ -47,3 +52,4 @@ export class Anthropic extends BaseModel {
         return result.content.toString();
     }
 }
+
