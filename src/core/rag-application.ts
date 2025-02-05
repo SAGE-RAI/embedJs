@@ -426,5 +426,20 @@ export class RAGApplication {
         return result;
     }
 
+    /**
+     * Retrieves the embedding for a given text.
+     *
+     * This method allows you to obtain the embedding vector directly from a text string
+     * without processing loaders or executing a full query.
+     *
+     * @param {string} text - The text to be embedded.
+     * @returns {Promise<number[]>} A Promise that resolves to the embedding vector.
+     */
+    public async getTextEmbedding(text: string): Promise<number[]> {
+        // Here we use the embedDocuments method with a single-element array and return the first result.
+        const [embedding] = await RAGEmbedding.getEmbedding().embedDocuments([text]);
+        return embedding;
+    }
+
 
 }
