@@ -8,4 +8,6 @@ export interface BaseDb {
 
     deleteKeys(uniqueLoaderId: string): Promise<boolean>;
     reset(): Promise<void>;
+
+    getFullText(): Promise<string>; // to get the full text of the database
 }
