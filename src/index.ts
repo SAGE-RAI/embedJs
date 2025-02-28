@@ -39,6 +39,7 @@ import { GeckoEmbedding } from './embeddings/gecko-embedding.js';
 import { VertexAI } from './models/vertexai-model.js';
 import { Ollama } from './models/ollama-model.js';
 import { MongoDb } from './vectorDb/mongo-db.js';
+import { SetOfDbs } from './vectorDb/set-of-db.js';
 
 
 export {
@@ -69,6 +70,7 @@ export {
     InMemoryConversations,
     MongoConversations,
     MongoDb,
+    SetOfDbs,
     SIMPLE_MODELS,
     OpenAi,
     AdaEmbeddings,

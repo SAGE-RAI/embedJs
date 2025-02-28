@@ -212,11 +212,6 @@
             "import": "./dist/vectorDb/mongo-db.js",
             "require": "./dist/vectorDb/mongo-db.cjs"
         },
-        "./vectorDb/SetOfDbs": {
-            "types": "./dist/vectorDb/set-of-db.d.ts",
-            "import": "./dist/vectorDb/set-of-db.js",
-            "require": "./dist/vectorDb/set-of-db.cjs"
-        },
         "./vectorDb/cosmosdb": {
             "types": "./dist/vectorDb/cosmos-db.d.ts",
             "import": "./dist/vectorDb/cosmos-db.js",
