@@ -11,9 +11,15 @@ import { ExtractChunkData, InsertChunkData } from '../global/types.js';
 export class SetOfDbs implements BaseDb {
     private readonly debug = createDebugMessages('embedjs:vector:SetOfDbs');
     private readonly DEFAULT_DB_POSITION = 0;
-    private dbs: BaseDb[];
+    private dbs: {
+        database: BaseDb,
+        name: string
+    }[];
 
-    constructor(dbs: BaseDb[]) {
+    constructor(dbs: {
+        database: BaseDb,
+        name: string
+    }[]) {
         if (!dbs || dbs.length === 0) {
             throw new Error('At least one database must be provided.');
         }
@@ -22,12 +28,12 @@ export class SetOfDbs implements BaseDb {
 
     async init({ dimensions }: { dimensions: number }): Promise<void> {
         this.debug('Connecting to set of database...');
-        await Promise.all(this.dbs.map(db => db.init({ dimensions })));
+        await Promise.all(this.dbs.map(db => db.database.init({ dimensions })));
         this.debug('Connected to set of database');
     }
 
     async insertChunks(chunks: InsertChunkData[]): Promise<number> {
-        return this.dbs[this.DEFAULT_DB_POSITION].insertChunks(chunks);
+        return this.dbs[this.DEFAULT_DB_POSITION].database.insertChunks(chunks);
     }
 
     async similaritySearch(query: number[], k: number): Promise<ExtractChunkData[]> {
@@ -35,28 +41,28 @@ export class SetOfDbs implements BaseDb {
         // Fetch results from all databases and attach dbName
         const allResults = await Promise.all(
             this.dbs.map(async (db) => {
-                const dbResults = await db.similaritySearch(query, k);
+                const dbResults = await db.database.similaritySearch(query, k);
                 return dbResults.map(chunk => ({
                     ...chunk,
-                    metadata: { ...chunk.metadata, dbName: db.constructor.name } // Adding dbName
+                    metadata: { ...chunk.metadata, SourceDbName: db.database.constructor.name , dbName: db.name } // Adding dbName
                 }));
             })
         );
         return allResults.flat();
-        
+
     }
 
     async getVectorCount(): Promise<number> {
-        const counts = await Promise.all(this.dbs.map(db => db.getVectorCount()));
+        const counts = await Promise.all(this.dbs.map(db => db.database.getVectorCount()));
         return counts.reduce((sum, count) => sum + count, 0);
     }
 
     async deleteKeys(uniqueLoaderId: string): Promise<boolean> {
-        const results = await Promise.all(this.dbs.map(db => db.deleteKeys(uniqueLoaderId)));
+        const results = await Promise.all(this.dbs.map(db => db.database.deleteKeys(uniqueLoaderId)));
         return results.every(result => result);
     }
 
     async reset(): Promise<void> {
-        await Promise.all(this.dbs.map(db => db.reset()));
+        await Promise.all(this.dbs.map(db => db.database.reset()));
     }
 }
