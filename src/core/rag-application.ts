@@ -323,7 +323,6 @@ export class RAGApplication {
         const queryEmbedded = await RAGEmbedding.getEmbedding().embedQuery(cleanQuery);
         const unfilteredResultSet = await this.vectorDb.similaritySearch(queryEmbedded, this.searchResultCount + 10);
         this.debug(`Query resulted in ${unfilteredResultSet.length} chunks before filteration...`);
-
         return unfilteredResultSet
             .filter((result) => result.score > this.embeddingRelevanceCutOff)
             .sort((a, b) => b.score - a.score)
