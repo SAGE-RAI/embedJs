@@ -3,7 +3,7 @@ import { ExtractChunkData, InsertChunkData } from '../global/types.js';
 export interface BaseDb {
     init({}: { dimensions: number }): Promise<void>;
     insertChunks(chunks: InsertChunkData[]): Promise<number>;
-    similaritySearch(query: number[], k: number): Promise<ExtractChunkData[]>;
+    similaritySearch(query: number[], k: number, rawQuery?: string): Promise<ExtractChunkData[]>; // added rawQuery
     getVectorCount(): Promise<number>;
 
     deleteKeys(uniqueLoaderId: string): Promise<boolean>;
