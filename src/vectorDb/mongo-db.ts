@@ -174,6 +174,14 @@ export class MongoDb implements BaseDb {
     }
     
     async getFullText(): Promise<string> {
-        return 'MongoDB does not support full text search';
+        // Fetch and concatenate all stored chunks as full text
+        try {
+            const chunks = await this.collection.find().toArray();
+            const fullText = chunks.map(chunk => chunk.pageContent).join(' ');
+            return fullText;
+        } catch (error) {
+            this.debug('Error fetching chunks:', error);
+            throw new Error('Failed to fetch and concatenate chunks');
+        }
     }
 }
