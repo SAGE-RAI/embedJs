@@ -294,8 +294,13 @@ export class SetOfDbs implements BaseDb {
     
     private async extractTopicsAndEntities(text: string): Promise<{ topics: Record<string, number>, entities: Record<string, number> }> {
         const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
-        const response = await this.ragApplication.silentConversationQuery(prompt, null, null, null);
-    
+        let response; 
+        try {
+            response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', null);
+        } catch (error) {   
+            console.error("Failed to extract topics and entities:", error, "Response:", response);
+        }
+
         try {
             const parsedResponse = JSON.parse(response);
             if (!parsedResponse.topics || !parsedResponse.entities) {
