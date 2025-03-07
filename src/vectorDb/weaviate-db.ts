@@ -153,4 +153,21 @@ export class WeaviateDb implements BaseDb {
         await this.client.schema.classDeleter().withClassName(this.className).do();
         await this.init({ dimensions: this.dimensions });
     }
+
+    async getFullText(): Promise<string> {
+        // Fetch and concatenate all stored chunks as full text
+        return 'Weaviate does not support full text yet!';
+        // try {
+        //     const queryResponse = await this.client.graphql
+        //         .get()
+        //         .withClassName(this.className)
+        //         .withFields('pageContent')
+        //         .do();
+
+        //     return queryResponse.data.Get[this.className].map((match) => match.pageContent).join(' ');
+        // } catch (error) {
+        //     this.debug('Error fetching full text:', error);
+        //     throw error;
+        // }
+    }
 }

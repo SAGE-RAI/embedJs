@@ -69,16 +69,16 @@ export class SetOfDbs implements BaseDb {
         try {
             // Step 1: Generate full-text embeddings for each source
             const embeddings = await Promise.all(
-                // this.dbs.map(async db => {
-                //     const fullText = await db.database.getFullText();
-                //     return { db, embedding: await RAGEmbedding.getEmbedding().embedQuery(fullText) };
-                // })
-
                 this.dbs.map(async db => {
-                    const chunks = await db.database.similaritySearch([], 100);
-                    const fullText = chunks.map(chunk => chunk.metadata?.originalText || chunk.pageContent).join(' ');
+                    const fullText = await db.database.getFullText();
                     return { db, embedding: await RAGEmbedding.getEmbedding().embedQuery(fullText) };
                 })
+
+                // this.dbs.map(async db => {
+                //     const chunks = await db.database.similaritySearch([], 100);
+                //     const fullText = chunks.map(chunk => chunk.metadata?.originalText || chunk.pageContent).join(' ');
+                //     return { db, embedding: await RAGEmbedding.getEmbedding().embedQuery(fullText) };
+                // })
             );
     
             // Step 2: Calculate cosine similarity between the query and each source's full-text embedding
@@ -132,16 +132,16 @@ export class SetOfDbs implements BaseDb {
         }
     }
 
-    // async getFullText(): Promise<string> {
-    //     // Fetch and concatenate all stored chunks as full text
-    //     try {
-    //         const allTexts = await Promise.all(this.dbs.map(db => db.database.getFullText()));
-    //         return allTexts.join(' ');
-    //     } catch (error) {
-    //         this.debug('Error fetching full text:', error);
-    //         throw error;
-    //     }
-    // }
+    async getFullText(): Promise<string> {
+        // Fetch and concatenate all stored chunks as full text
+        try {
+            const allTexts = await Promise.all(this.dbs.map(db => db.database.getFullText()));
+            return allTexts.join(' ');
+        } catch (error) {
+            this.debug('Error fetching full text:', error);
+            throw error;
+        }
+    }
 
     private cosineSimilarity(vecA: number[], vecB: number[]): number {
         const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
@@ -153,7 +153,7 @@ export class SetOfDbs implements BaseDb {
     // async similaritySearchTopicClassificationStrategy(query: number[], k: number): ExtractChunkData[] | PromiseLike<ExtractChunkData[]> {
     //     // ...do topic classification over the dbs
     //     throw new Error('Method not implemented.');
-        
+    
     // }
 
     setStrategy(strategy: string): void {

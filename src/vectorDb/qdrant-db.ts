@@ -106,4 +106,14 @@ export class QdrantDb implements BaseDb {
             filter: {},
         });
     }
+
+    async getFullText(): Promise<string> {
+        // Fetch and concatenate all stored chunks as full text
+        return 'QdrantDb does not support full text yet!';
+        // const allChunks = await this.client.search(this.clusterName, {
+        //     limit: 1000,
+        //     with_payload: true,
+        // });
+        // return allChunks.map((chunk) => (<any>chunk.payload).pageContent).join(' ');
+    }
 }

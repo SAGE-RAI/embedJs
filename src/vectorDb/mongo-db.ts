@@ -172,4 +172,8 @@ export class MongoDb implements BaseDb {
     async reset(): Promise<void> {
         await this.collection.deleteMany({});
     }
+    
+    async getFullText(): Promise<string> {
+        return 'MongoDB does not support full text search';
+    }
 }

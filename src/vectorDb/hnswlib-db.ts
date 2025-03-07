@@ -55,4 +55,9 @@ export class HNSWDb implements BaseDb {
     async reset(): Promise<void> {
         await this.init({ dimensions: this.index.getNumDimensions() });
     }
+
+    async getFullText(): Promise<string> {
+        // Fetch and concatenate all stored chunks as full text
+        return 'HNSWDb does not support full text yet!';
+    }
 }

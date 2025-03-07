@@ -77,4 +77,8 @@ export class ChromaDb implements BaseDb {
         await client.deleteCollection({ name: ChromaDb.STATIC_COLLECTION_NAME });
         this.collection = await client.createCollection({ name: ChromaDb.STATIC_COLLECTION_NAME });
     }
+
+    async getFullText(): Promise<string> {
+        return 'ChromaDB does not support full text search';
+    }
 }
