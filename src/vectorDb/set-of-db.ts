@@ -30,9 +30,6 @@ export class SetOfDbs implements BaseDb {
             throw new Error('At least one database must be provided.');
         }
         this.dbs = dbs;
-        // this.ragApplication = RAGApplication;
-        // // this.ragApplication = new RAGApplication(); // Initialize the ragApplication property with the required argument
-        // this.debug('RAGApplication initialized in Set of Dbs:', !! this.ragApplication); // Debug log
     }
 
     async init({ dimensions }: { dimensions: number }): Promise<void> {
@@ -303,9 +300,8 @@ export class SetOfDbs implements BaseDb {
         
         const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
         let response; 
-        let chunks = [];
         try {
-            response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', chunks);
+            response = await this.ragApplication.silentConversationQuery(prompt, null, null, null);
         } catch (error) {   
             console.error("Failed to extract topics and entities:", error, "Response:", response);
         }
@@ -355,22 +351,25 @@ export class SetOfDbs implements BaseDb {
     }
     
     private async retrieveChunks(scoredSources: { db: { database: BaseDb, name: string }, relevanceScore?: number, weight?: number }[], query: number[], k: number): Promise<ExtractChunkData[]> {
-        let chunksPerSource = [];
-        // write an if statement to check if relevanceScore was provide or weight was provide
-        if (scoredSources[0].relevanceScore) {
+        let chunksPerSource;
+
+        // Check if relevanceScore or weight is provided for the sources
+        if ('relevanceScore' in scoredSources[0]) {
             // Sort sources by relevance score
             chunksPerSource = scoredSources.map(({ db, relevanceScore }) => ({
                 db: db.database,
                 numChunks: Math.round(k * relevanceScore)
             }));
-        } else {
+        } else if ('weight' in scoredSources[0]) {
             // Sort sources by weight
             chunksPerSource = scoredSources.map(({ db, weight }) => ({
                 db: db.database,
                 numChunks: Math.round(k * weight)
             }));
+        } else {
+            // If neither relevanceScore nor weight is present, throw an error or handle the case
+            throw new Error('Neither relevanceScore nor weight is provided for the sources.');
         }
-
     
         // Adjust chunk counts to ensure the total is exactly k
         let totalChunks = chunksPerSource.reduce((sum, { numChunks }) => sum + numChunks, 0);
