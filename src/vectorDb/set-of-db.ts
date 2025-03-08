@@ -9,6 +9,7 @@ import { BaseDb } from '../interfaces/base-db.js';
 import { ExtractChunkData, InsertChunkData } from '../global/types.js';
 import { RAGEmbedding } from '../core/rag-embedding.js';
 import { RAGApplication } from '../core/rag-application.js';
+import { RAGApplicationBuilder } from '../core/rag-application-builder.js';
 
 
 export class SetOfDbs implements BaseDb {
@@ -20,7 +21,7 @@ export class SetOfDbs implements BaseDb {
         name: string
     }[];
 
-    private ragApplication: RAGApplication; // Add this line
+    private ragApplication: RAGApplication; 
 
     constructor(dbs: {
         database: BaseDb,
@@ -30,6 +31,9 @@ export class SetOfDbs implements BaseDb {
             throw new Error('At least one database must be provided.');
         }
         this.dbs = dbs;
+        const llmBuilder = new RAGApplicationBuilder(); // Create an instance of RAGApplicationBuilder
+        this.ragApplication = new RAGApplication(llmBuilder); // Initialize the ragApplication property with the required argument
+        this.debug('RAGApplication initialized in Set of Dbs:', !!this.ragApplication); // Debug log
     }
 
     async init({ dimensions }: { dimensions: number }): Promise<void> {
@@ -293,6 +297,11 @@ export class SetOfDbs implements BaseDb {
     }
     
     private async extractTopicsAndEntities(text: string): Promise<{ topics: Record<string, number>, entities: Record<string, number> }> {
+        
+        if (!this.ragApplication) {
+            throw new Error('RAGApplication instance is not initialized.');
+        }
+        
         const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
         let response; 
         let chunks = [];
