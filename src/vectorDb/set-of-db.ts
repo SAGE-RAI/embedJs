@@ -9,7 +9,6 @@ import { BaseDb } from '../interfaces/base-db.js';
 import { ExtractChunkData, InsertChunkData } from '../global/types.js';
 import { RAGEmbedding } from '../core/rag-embedding.js';
 import { RAGApplication } from '../core/rag-application.js';
-import { RAGApplicationBuilder } from '../core/rag-application-builder.js';
 
 
 export class SetOfDbs implements BaseDb {
@@ -31,10 +30,7 @@ export class SetOfDbs implements BaseDb {
             throw new Error('At least one database must be provided.');
         }
         this.dbs = dbs;
-        this.ragApplication = new RAGApplication(new RAGApplicationBuilder()); // Initialize the ragApplication property with the required argument
-       //this.ragApplication = new RAGApplication(new RAGApplicationBuilder()); // Initialize the ragApplication property with the required argument
-        // const llmBuilder = new RAGApplicationBuilder();
-        // this.ragApplication = new RAGApplication(llmBuilder); // Initialize the ragApplication property with the required argument
+        // this.ragApplication = new RAGApplication(); // Initialize the ragApplication property with the required argument
         this.debug('RAGApplication initialized in Set of Dbs:', !! this.ragApplication); // Debug log
     }
 
