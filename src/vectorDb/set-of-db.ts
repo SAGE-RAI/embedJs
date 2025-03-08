@@ -31,9 +31,11 @@ export class SetOfDbs implements BaseDb {
             throw new Error('At least one database must be provided.');
         }
         this.dbs = dbs;
-        const llmBuilder = new RAGApplicationBuilder(); // Create an instance of RAGApplicationBuilder
-        this.ragApplication = new RAGApplication(llmBuilder); // Initialize the ragApplication property with the required argument
-        this.debug('RAGApplication initialized in Set of Dbs:', !!this.ragApplication); // Debug log
+        this.ragApplication = new RAGApplication(new RAGApplicationBuilder()); // Initialize the ragApplication property with the required argument
+       //this.ragApplication = new RAGApplication(new RAGApplicationBuilder()); // Initialize the ragApplication property with the required argument
+        // const llmBuilder = new RAGApplicationBuilder();
+        // this.ragApplication = new RAGApplication(llmBuilder); // Initialize the ragApplication property with the required argument
+        this.debug('RAGApplication initialized in Set of Dbs:', !! this.ragApplication); // Debug log
     }
 
     async init({ dimensions }: { dimensions: number }): Promise<void> {
