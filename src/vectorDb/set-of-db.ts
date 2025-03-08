@@ -20,7 +20,7 @@ export class SetOfDbs implements BaseDb {
         name: string
     }[];
 
-    private ragApplication: RAGApplication; 
+    private ragApplication;
 
     constructor(dbs: {
         database: BaseDb,
@@ -30,8 +30,9 @@ export class SetOfDbs implements BaseDb {
             throw new Error('At least one database must be provided.');
         }
         this.dbs = dbs;
-        // this.ragApplication = new RAGApplication(); // Initialize the ragApplication property with the required argument
-        this.debug('RAGApplication initialized in Set of Dbs:', !! this.ragApplication); // Debug log
+        // this.ragApplication = RAGApplication;
+        // // this.ragApplication = new RAGApplication(); // Initialize the ragApplication property with the required argument
+        // this.debug('RAGApplication initialized in Set of Dbs:', !! this.ragApplication); // Debug log
     }
 
     async init({ dimensions }: { dimensions: number }): Promise<void> {
@@ -400,6 +401,10 @@ export class SetOfDbs implements BaseDb {
 
     setStrategy(strategy: string): void {
         this.currentStrategy = strategy;
+    }
+
+    ragApp(ragApp: RAGApplication): void {
+        this.ragApplication = ragApp;
     }
 
     async getVectorCount(): Promise<number> {
