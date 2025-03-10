@@ -272,14 +272,35 @@ export class SetOfDbs implements BaseDb {
             const sourceTopicEntities = await Promise.all(
                 this.dbs.map(async db => {
                     const fullText = await db.database.getFullText();
-                    const { topics, entities } = await this.extractTopicsAndEntities(fullText);
-                    return { db, topics, entities };
+                    // break these full text into  chunks again as the full text is too large for the model tokenizer
+                    // Step 1: Split full text into smaller chunks (~512-1024 tokens each)
+                    const textChunks = this.chunkText(fullText, 512); // Adjust size as needed
+                    
+                    // Step 2: Extract topics/entities for each chunk separately
+                    const chunkResults = await Promise.all(
+                        textChunks.map(async chunk => await this.extractTopicsAndEntities(chunk))
+                    );
+
+                    // Step 3: Aggregate extracted topics/entities across all chunks
+                    const allTopics = new Set<string>();
+                    const allEntities = new Set<string>();
+                    chunkResults.forEach(({ topics, entities }) => {
+                        Object.keys(topics).forEach(topic => allTopics.add(topic));
+                        Object.keys(entities).forEach(entity => allEntities.add(entity));
+                    });
+
+                    return { db, topics: Array.from(allTopics), entities: Array.from(allEntities) };
                 })
+                //     const { topics, entities } = await this.extractTopicsAndEntities(fullText);
+                //     return { db, topics, entities };
+                // })
             );
     
             // Step 3: Calculate relevance scores
             const scoredSources = sourceTopicEntities.map(({ db, topics, entities }) => {
-                const relevanceScore = this.computeRelevanceScore(topics, entities, queryTopicsAndEntities);
+                const topicsRecord = topics.reduce((acc, topic) => ({ ...acc, [topic]: 1 }), {} as Record<string, number>);
+                const entitiesRecord = entities.reduce((acc, entity) => ({ ...acc, [entity]: 1 }), {} as Record<string, number>);
+                const relevanceScore = this.computeRelevanceScore(topicsRecord, entitiesRecord, queryTopicsAndEntities);
                 return { db, relevanceScore };
             });
     
@@ -299,22 +320,18 @@ export class SetOfDbs implements BaseDb {
         }
         
         const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
-        let response; 
-        try {
-            response = await this.ragApplication.silentConversationQuery(prompt, null, null, null);
-        } catch (error) {   
-            console.error("Failed to extract topics and entities:", error, "Response:", response);
-        }
+        let response, parsedResponse; 
+        response = await this.ragApplication.silentConversationQuery(prompt, null, null, null);    
 
         try {
-            const parsedResponse = JSON.parse(response);
+            parsedResponse = JSON.parse(response);
             if (!parsedResponse.topics || !parsedResponse.entities) {
                 throw new Error('Invalid JSON structure for topics/entities.');
             }
             return parsedResponse;
         } catch (error) {
             try {
-                const parsedResponse = JSON.parse(response + "}"); // This is a hack to get the error message from the response
+                parsedResponse = JSON.parse(response + "}"); // This is a hack to get the error message from the response
                 if (!parsedResponse.topics || !parsedResponse.entities) {
                     throw new Error('Invalid JSON structure for topics/entities.');
                 }
@@ -419,6 +436,19 @@ export class SetOfDbs implements BaseDb {
     async reset(): Promise<void> {
         await Promise.all(this.dbs.map(db => db.database.reset()));
     }
+
+    // chunk the fulltext into smaller chunks
+    chunkText(text: string, maxTokens: number): string[] {
+        const words = text.split(/\s+/); // Split by spaces (or use a tokenizer for better control)
+        const chunks = [];
+        
+        for (let i = 0; i < words.length; i += maxTokens) {
+            chunks.push(words.slice(i, i + maxTokens).join(' '));
+        }
+        
+        return chunks;
+    }
+    
 
     async getFullText(): Promise<string> {
         // Fetch and concatenate all stored chunks as full text
