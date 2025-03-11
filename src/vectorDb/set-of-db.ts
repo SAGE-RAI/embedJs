@@ -219,51 +219,32 @@ export class SetOfDbs implements BaseDb {
         }
     
         const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
-        let response: string, parsedResponse: { topics: Record<string, number>, entities: Record<string, number> } | null = null;
+        let response: string, topics: Record<string, number>, entities: Record<string, number>;
         response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
-    
+        let parsedResponse: { topics: Record<string, number>, entities: Record<string, number> } = { topics: {}, entities: {} };
+
         try {
-            // Attempt to parse the response as JSON
             parsedResponse = JSON.parse(response);
-    
-            // Validate the parsed response
-            if (!parsedResponse.topics || !parsedResponse.entities) {
-                throw new Error('Invalid JSON structure for topics/entities.');
+            topics = parsedResponse.topics;
+            entities = parsedResponse.entities;
+            if (!topics || !entities) {
+                throw new Error(`Invalid JSON structure for topics/entities.`);
             }
-    
-            return parsedResponse;
+            return { topics, entities };
         } catch (error) {
-            // If parsing fails, attempt to fix the JSON
             try {
-                // Attempt to fix malformed JSON by adding a closing brace if missing
-                let fixedResponse = response.trim();
-
-                // Add missing opening brace
-                if (!fixedResponse.endsWith('}')) {
-                    fixedResponse += '}';
+                parsedResponse = JSON.parse(response + "}"); // This is a hack to get the error message from the response
+                topics = parsedResponse.topics;
+                entities = parsedResponse.entities;
+                if (!topics || !entities) {
+                    throw new Error(`Failed to fix the JSON Parser error`);
                 }
-
-                // Fix unterminated strings (attempts to close open quotes)
-                fixedResponse = fixedResponse.replace(/:\s*"([^"]*?)$/, ': "$1"'); 
-
-                // Fix trailing commas
-                fixedResponse = fixedResponse.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-    
-                // Attempt to parse the fixed JSON
-                parsedResponse = JSON.parse(fixedResponse);
-    
-                // Validate the parsed response
-                if (!parsedResponse.topics || !parsedResponse.entities) {
-                    throw new Error('Invalid JSON structure for topics/entities after fixing.');
-                }
-    
-                return parsedResponse;
-            } catch (fixError) {
-                // If fixing fails, log the error and return a fallback
-                console.error("Failed to extract topics and entities:", fixError, "Response:", response);
-                return { topics: {}, entities: {} }; // Fallback
+                return {topics: topics, entities: entities }; // Fallback
+            } catch (error) {
+                console.error("Failed to extract topics and entities:", error, "Response:", response);
+                return {topics: {}, entities: {} }; // Fallback
             }
-        }
+        } 
     }
 
     private computeRelevanceScore(sourceTopics: Record<string, number>, sourceEntities: Record<string, number>, queryTopicsAndEntities: { topics: Record<string, number>, entities: Record<string, number> }): number {
