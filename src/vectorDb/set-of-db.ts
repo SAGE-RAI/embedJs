@@ -15,6 +15,7 @@ export class SetOfDbs implements BaseDb {
     private readonly debug = createDebugMessages('embedjs:vector:SetOfDbs');
     private readonly DEFAULT_DB_POSITION = 0;
     private currentStrategy: string;
+    private relevanceThreshold: number; // Threshold for selecting sources based on relevance score
     private dbs: {
         database: BaseDb,
         name: string
@@ -49,6 +50,9 @@ export class SetOfDbs implements BaseDb {
                 return await this.similaritySearchWeightedRelevanceStrategy(query, k);
             case 'topicClassification':
                 return await this.similaritySearchTopicClassificationStrategy(query, k, rawQuery);
+            case 'llmSummarization':
+                return []
+                //await this.similaritySearchLLMSummarization(query, k, rawQuery);
             default:
                 return await this.similaritySearchDefaultStrategy(query, k);    
         }
@@ -62,7 +66,7 @@ export class SetOfDbs implements BaseDb {
                 const dbResults = await db.database.similaritySearch(query, k);
                 return dbResults.map(chunk => ({
                     ...chunk,
-                    metadata: { ...chunk.metadata, SourceDbName: db.database.constructor.name , dbName: db.name } // Adding dbName
+                    metadata: { ...chunk.metadata, dbName: db.name } // Adding dbName
                 }));
             })
         );
@@ -170,6 +174,45 @@ export class SetOfDbs implements BaseDb {
         }
     }
 
+    // async similaritySearchLLMSummarization(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
+    //     // Step 1: Generate full-text embeddings for each source
+    //     const summarisedSources = await Promise.all(
+    //         this.dbs.map(async db => {
+    //             const fullText = await db.database.getFullText();
+    //             const summarizedText = await this.summarizeText(fullText, rawQuery);
+    //             return { db, summarizedText};
+    //         })
+    //     );
+    //     return [];
+
+    // }
+
+    // summarize full text with relevance to the query and in general
+    // private async summarizeText(fullText: string, rawQuery: string): Promise<{relevanceSummary: string, generalSummary: string}> {
+    //     if (!this.ragApplication) {
+    //         throw new Error('RAGApplication instance is not initialized.');
+    //     }
+    //     // Step 1a: Summarize with relevance to the query
+    //     const promptRelevance = `Summarize the content below, paying attention to what is relevant to the query: "${rawQuery}".  
+    //             - Ensure the summary is **concise yet sufficiently detailed** to capture key points.  
+    //             - The summary should be **clear, accurate, and contextually relevant**.  
+    //             - Avoid opinions, interpretations, or extra information not in the original text.  
+    //             Text to summarize: ${fullText}  
+    //             Respond with **only** the summary, without extra text or formatting.`;
+    //     const responseRelevance = await this.ragApplication.silentConversationQuery(promptRelevance, null, 'default', []);
+
+    //     // Step 2b: Summarize in general (without query focus)
+    //     const generalSummaryPrompt = `Summarize the following text clearly and concisely.  
+    //     - Capture **main ideas, key points, and essential details**.  
+    //     - The summary should be **neutral, structured, and coherent**.  
+    //     - **Exclude** personal opinions or any extraneous information.  
+    //     Text to summarize: ${fullText}  
+    //     Respond with **only** the summary, without extra text or formatting.`;
+    //     const responseGeneral = await this.ragApplication.silentConversationQuery(generalSummaryPrompt, null, 'default', []);
+
+    //     return { relevanceSummary: responseRelevance, generalSummary: responseGeneral };
+    // }
+
     private async extractTopicsAndEntities(text: string): Promise<{ topics: Record<string, number>, entities: Record<string, number> }> {
         if (!this.ragApplication) {
             throw new Error('RAGApplication instance is not initialized.');
@@ -177,8 +220,7 @@ export class SetOfDbs implements BaseDb {
     
         const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
         let response: string, parsedResponse: { topics: Record<string, number>, entities: Record<string, number> } | null = null;
-        let chunks = [];
-        response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', chunks);
+        response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
     
         try {
             // Attempt to parse the response as JSON
@@ -195,12 +237,17 @@ export class SetOfDbs implements BaseDb {
             try {
                 // Attempt to fix malformed JSON by adding a closing brace if missing
                 let fixedResponse = response.trim();
+
+                // Add missing opening brace
                 if (!fixedResponse.endsWith('}')) {
                     fixedResponse += '}';
                 }
-    
-                // Remove trailing commas (if any)
-                fixedResponse = fixedResponse.replace(/,\s*}/g, '}');
+
+                // Fix unterminated strings (attempts to close open quotes)
+                fixedResponse = fixedResponse.replace(/:\s*"([^"]*?)$/, ': "$1"'); 
+
+                // Fix trailing commas
+                fixedResponse = fixedResponse.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
     
                 // Attempt to parse the fixed JSON
                 parsedResponse = JSON.parse(fixedResponse);
@@ -246,42 +293,51 @@ export class SetOfDbs implements BaseDb {
     }
     
     private async retrieveChunks(scoredSources: { db: { database: BaseDb, name: string }, relevanceScore?: number, weight?: number }[], query: number[], k: number): Promise<ExtractChunkData[]> {
-        let chunksPerSource: { db: { database: BaseDb, name: string }, numChunks: number }[] = [];
+        let chunksPerSource: { db: { database: BaseDb, name: string }, relevanceScore?:number, numChunks?: number }[] = [];
 
         // Check if relevanceScore or weight is provided for the sources and calculate the number of chunks to select
         if ('relevanceScore' in scoredSources[0]) {
             chunksPerSource = scoredSources.map(({ db, relevanceScore }) => ({
                 db,
-                numChunks: Math.round(k * relevanceScore)
+                relevanceScore,
             }));
         } else if ('weight' in scoredSources[0]) {
             chunksPerSource = scoredSources.map(({ db, weight }) => ({
                 db,
+                relevanceScore: weight,
                 numChunks: Math.round(k * weight)
             }));
+
+             // Adjust chunk counts to ensure the total is exactly k
+            let totalChunks = chunksPerSource.reduce((sum, { numChunks }) => sum + numChunks, 0);
+            while (totalChunks !== k) {
+                const diff = k - totalChunks;
+                const adjustment = diff > 0 ? 1 : -1;
+                const index = chunksPerSource.findIndex(({ numChunks }) => numChunks + adjustment >= 0);
+                if (index !== -1) {
+                    chunksPerSource[index].numChunks += adjustment;
+                    totalChunks += adjustment;
+                }
+            }
         } else {
             throw new Error('Neither relevanceScore nor weight is provided for the sources.');
         }
     
-        // Adjust chunk counts to ensure the total is exactly k
-        let totalChunks = chunksPerSource.reduce((sum, { numChunks }) => sum + numChunks, 0);
-        while (totalChunks !== k) {
-            const diff = k - totalChunks;
-            const adjustment = diff > 0 ? 1 : -1;
-            const index = chunksPerSource.findIndex(({ numChunks }) => numChunks + adjustment >= 0);
-            if (index !== -1) {
-                chunksPerSource[index].numChunks += adjustment;
-                totalChunks += adjustment;
-            }
-        }
-    
         // Retrieve chunks from each source
-        const results = await Promise.all(chunksPerSource.map(async ({ db, numChunks }) => {
-            if (numChunks > 0) {
+        const results = await Promise.all(chunksPerSource.map(async ({ db, relevanceScore, numChunks }) => {
+            if (numChunks > 0) { // weightedRelevance
                 const dbResults = await db.database.similaritySearch(query, numChunks);
                 return dbResults.map(chunk => ({
                     ...chunk,
-                    metadata: { ...chunk.metadata, sourceDbName: db.constructor.name, dbName: db.name }
+                    metadata: { ...chunk.metadata, dbName: db.name },
+                    weightedRelevance: relevanceScore
+                }));
+            } else if (relevanceScore >= this.relevanceThreshold) { // topicClassification
+                const dbResults = await db.database.similaritySearch(query, k);
+                return dbResults.map(chunk => ({
+                    ...chunk,
+                    metadata: { ...chunk.metadata, dbName: db.name },
+                    topicRelevance: relevanceScore
                 }));
             }
             return [];
@@ -293,6 +349,11 @@ export class SetOfDbs implements BaseDb {
     // set the strategy for the similarity search
     setStrategy(strategy: string): void {
         this.currentStrategy = strategy;
+    }
+
+    // set relevancethreshold
+    setRelevanceThreshold(relevanceThreshold: number): void {
+        this.relevanceThreshold = relevanceThreshold;
     }
 
     // set the ragApp initialised in the main app
