@@ -271,15 +271,21 @@ export class SetOfDbs implements BaseDb {
         }
     
         // Improved prompt that clearly instructs the LLM to output valid JSON with no extra text.
-        const prompt = `Analyze the following text and extract its primary topics and entities. 
-        For topics and entities, aim to identify between 10 and 15 key themes that capture the text’s main ideas. Assign a numerical weight to each topic and entity based on its importance. 
-        Respond with a JSON object that strictly follows this structure: 
+        const prompt = `Analyze the following text and extract exactly 10 to 15 primary topics and entities.  
+        Each topic and entity should be **distinct** and should capture key themes from the text.  
+        Assign a numerical weight (between 0 and 1) to each topic and entity based on its importance.  
+        
+        Strictly adhere to this response format as a JSON object:
         {
-        "topics": { "topic": weight },
-        "entities": { "entity": weight }
+            "topics": { "topic1": weight, "topic2": weight, ..., "topicN": weight },
+            "entities": { "entity1": weight, "entity2": weight, ..., "entityN": weight }
         }
-        Do not include any additional text or explanation.
-        Text: "${text}"`;
+        
+        - Ensure there are **at least 10 and at most 15** topics.  
+        - Ensure there are **at least 10 and at most 15** entities.  
+        - Do **not** provide additional explanations or extra text.  
+        
+        Text to analyze: "${text}"`;
     
         let response: string;
         try {
