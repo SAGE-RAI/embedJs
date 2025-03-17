@@ -123,7 +123,7 @@ export class SetOfDbs implements BaseDb {
                 this.dbs.map(async db => {
                     const fullText = await db.database.getFullText();
                     // Step 1: Split full text into smaller chunks (~512-1024 tokens each)
-                    const textChunks = this.chunkText(fullText, 512); // Adjust size as needed
+                    const textChunks = this.chunkText(fullText, 512); // might reduce to 256
     
                     // Step 2: Extract topics/entities for each chunk separately
                     const chunkResults = await Promise.all(
@@ -187,7 +187,7 @@ export class SetOfDbs implements BaseDb {
 
     // }
 
-    // summarize full text with relevance to the query and in general
+    // //summarize full text with relevance to the query and in general
     // private async summarizeText(fullText: string, rawQuery: string): Promise<{relevanceSummary: string, generalSummary: string}> {
     //     if (!this.ragApplication) {
     //         throw new Error('RAGApplication instance is not initialized.');
@@ -213,39 +213,94 @@ export class SetOfDbs implements BaseDb {
     //     return { relevanceSummary: responseRelevance, generalSummary: responseGeneral };
     // }
 
+    // private async extractTopicsAndEntities(text: string): Promise<{ topics: Record<string, number>, entities: Record<string, number> }> {
+    //     if (!this.ragApplication) {
+    //         throw new Error('RAGApplication instance is not initialized.');
+    //     }
+    
+    //     const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
+    //     let response: string, topics: Record<string, number>, entities: Record<string, number>;
+    //     response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
+    //     let parsedResponse: { topics: Record<string, number>, entities: Record<string, number> } = { topics: {}, entities: {} };
+
+    //     try {
+    //         parsedResponse = JSON.parse(response);
+    //         topics = parsedResponse.topics;
+    //         entities = parsedResponse.entities;
+    //         if (!topics || !entities) {
+    //             throw new Error(`Invalid JSON structure for topics/entities.`);
+    //         }
+    //         return { topics, entities };
+    //     } catch (error) {
+    //         try {
+    //             parsedResponse = JSON.parse(response + "}"); // This is a hack to get the error message from the response
+    //             topics = parsedResponse.topics;
+    //             entities = parsedResponse.entities;
+    //             if (!topics || !entities) {
+    //                 throw new Error(`Failed to fix the JSON Parser error`);
+    //             }
+    //             return {topics: topics, entities: entities }; // Fallback
+    //         } catch (error) {
+    //             console.error("Failed to extract topics and entities:", error, "Response:", response);
+    //             return {topics: {}, entities: {} }; // Fallback
+    //         }
+    //     } 
+    // }
+
     private async extractTopicsAndEntities(text: string): Promise<{ topics: Record<string, number>, entities: Record<string, number> }> {
         if (!this.ragApplication) {
             throw new Error('RAGApplication instance is not initialized.');
         }
     
-        const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
-        let response: string, topics: Record<string, number>, entities: Record<string, number>;
-        response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
-        let parsedResponse: { topics: Record<string, number>, entities: Record<string, number> } = { topics: {}, entities: {} };
-
+        // Improved prompt that clearly instructs the LLM to output valid JSON with no extra text.
+        const prompt = `Analyze the following text and extract its primary topics and entities. 
+        Assign a weight to each topic/entity based on its importance. 
+        Respond with a JSON object exactly following this structure:
+        {
+        "topics": { "topic": weight },
+        "entities": { "entity": weight }
+        }
+        Do not include any additional text or explanation.
+        Text: "${text}"`;
+    
+        let response: string;
+        try {
+            response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
+        } catch (error) {
+            console.error("Error fetching response from ragApplication:", error);
+            return { topics: {}, entities: {} };
+        }
+    
+        let parsedResponse: { topics: Record<string, number>, entities: Record<string, number> };
+    
+        // Attempt to parse the JSON response.
         try {
             parsedResponse = JSON.parse(response);
-            topics = parsedResponse.topics;
-            entities = parsedResponse.entities;
-            if (!topics || !entities) {
-                throw new Error(`Invalid JSON structure for topics/entities.`);
-            }
-            return { topics, entities };
         } catch (error) {
-            try {
-                parsedResponse = JSON.parse(response + "}"); // This is a hack to get the error message from the response
-                topics = parsedResponse.topics;
-                entities = parsedResponse.entities;
-                if (!topics || !entities) {
-                    throw new Error(`Failed to fix the JSON Parser error`);
+            // If parsing fails, try to extract the JSON substring using regex.
+            const jsonMatch = response.match(/{[\s\S]*}/);
+            if (jsonMatch) {
+                try {
+                    parsedResponse = JSON.parse(jsonMatch[0]);
+                } catch (innerError) {
+                    console.error("Failed to parse the extracted JSON substring:", innerError, "Original response:", response);
+                    return { topics: {}, entities: {} };
                 }
-                return {topics: topics, entities: entities }; // Fallback
-            } catch (error) {
-                console.error("Failed to extract topics and entities:", error, "Response:", response);
-                return {topics: {}, entities: {} }; // Fallback
+            } else {
+                console.error("No valid JSON object found in response:", response);
+                return { topics: {}, entities: {} };
             }
-        } 
+        }
+    
+        // Validate that the JSON has the expected structure.
+        if (!parsedResponse.topics || !parsedResponse.entities) {
+            console.error("Invalid JSON structure for topics/entities:", parsedResponse);
+            return { topics: {}, entities: {} };
+        }
+    
+        return parsedResponse;
     }
+    
 
     private computeRelevanceScore(sourceTopics: Record<string, number>, sourceEntities: Record<string, number>, queryTopicsAndEntities: { topics: Record<string, number>, entities: Record<string, number> }): number {
         let relevanceScore = 0;
