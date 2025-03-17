@@ -218,7 +218,25 @@ export class SetOfDbs implements BaseDb {
     //         throw new Error('RAGApplication instance is not initialized.');
     //     }
     
-    //     const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
+    //     // const prompt = `Analyze the following text and extract its primary topics and entities. Assign a weight to each topic/entity based on its importance. Respond with a JSON object: { "topics": { "topic": weight }, "entities": { "entity": weight } }. Do not include any explanations or steps. Text: "${text}"`;
+    //     const prompt = `Analyze the following text and extract its primary topics and entities. 
+    //     Assign a weight to each topic/entity based on its importance. 
+    //     Respond with a JSON object exactly following this structure:
+    //     {
+    //         "topics": {
+    //             "topic1": weight,
+    //             "topic2": weight,
+    //             "...": ...
+    //         },
+    //         "entities": {
+    //             "entity1": weight,
+    //             "entity2": weight,
+    //             "...": ...
+    //         }
+    //     }
+    //     Do not include any additional text or explanation. Ensure that the JSON is syntactically correct and can be parsed by any standard JSON parser.
+    //     Text: "${text}"`;
+    
     //     let response: string, topics: Record<string, number>, entities: Record<string, number>;
     //     response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
     //     let parsedResponse: { topics: Record<string, number>, entities: Record<string, number> } = { topics: {}, entities: {} };
@@ -254,8 +272,8 @@ export class SetOfDbs implements BaseDb {
     
         // Improved prompt that clearly instructs the LLM to output valid JSON with no extra text.
         const prompt = `Analyze the following text and extract its primary topics and entities. 
-        Assign a weight to each topic/entity based on its importance. 
-        Respond with a JSON object exactly following this structure:
+        For topics and entities, aim to identify between 10 and 15 key themes that capture the text’s main ideas. Assign a numerical weight to each topic and entity based on its importance. 
+        Respond with a JSON object that strictly follows this structure: 
         {
         "topics": { "topic": weight },
         "entities": { "entity": weight }
