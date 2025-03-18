@@ -46,17 +46,18 @@ export class SetOfDbs implements BaseDb {
 
     async similaritySearch(query: number[], k: number, rawQuery?: string): Promise<ExtractChunkData[]> {
         // apply strategy for similarity search
+        k = this.numberK; // override the k
         switch (this.currentStrategy) {
             case 'topKNChunks':
-                return await this.similaritySearchTopKNChunksStrategy(query, this.numberK);
+                return await this.similaritySearchTopKNChunksStrategy(query, k);
             case 'topKChunksPerSource':
-                return await this.similaritySearchTopKChunksPerSourceStrategy(query, this.numberK);
+                return await this.similaritySearchTopKChunksPerSourceStrategy(query, k);
             case 'weightedRelevance':
-                return await this.similaritySearchWeightedRelevanceStrategy(query, this.numberK);
+                return await this.similaritySearchWeightedRelevanceStrategy(query, k);
             case 'topicClassification':
-                return await this.similaritySearchTopicClassificationStrategy(query, this.numberK, rawQuery);
+                return await this.similaritySearchTopicClassificationStrategy(query, k, rawQuery);
             case 'llmSummarization':
-                return await this.similaritySearchLLMSummarization(query, this.numberK, rawQuery);
+                return await this.similaritySearchLLMSummarization(query, k, rawQuery);
             default:
                 return await this.similaritySearchDefaultStrategy(query, k);    
         }
@@ -78,8 +79,7 @@ export class SetOfDbs implements BaseDb {
 
     async similaritySearchTopKNChunksStrategy(query: number[], k: number): Promise<ExtractChunkData[]> {
         // Top k/n chunks from each of n databases individually (k chunks): The top k chunks are selected from each of the n sources, with each database contributing equally.
-        console.log("k", this.numberK)
-        const chunksPerDb = Math.ceil(this.numberK / this.dbs.length); // Calculate chunks per data source
+        const chunksPerDb = Math.ceil(k / this.dbs.length); // Calculate chunks per data source
         const allResults = await Promise.all(
             this.dbs.map(async (db) => {
                 const dbResults = await db.database.similaritySearch(query, chunksPerDb); // in this case we need to change k
@@ -89,17 +89,16 @@ export class SetOfDbs implements BaseDb {
                 }));
             })
         );
-        console.log('k', k)
-        return allResults.flat().slice(0, this.numberK); // Select top k chunks from all sources
+        return allResults.flat().slice(0, k); // Select top k chunks from all sources
     }
 
     async similaritySearchTopKChunksPerSourceStrategy(query: number[], k: number): Promise<ExtractChunkData[]> {
         // Top k chunks from each of n sources individually (n*k chunks)
         const allResults = await Promise.all(
             this.dbs.map(async (db) => {
-                const dbResults = await db.database.similaritySearch(query, this.numberK);  // in this case we need to change k
+                const dbResults = await db.database.similaritySearch(query, k);  // in this case we need to change k
                 // Ensure we select **exactly k** per database
-                const topKChunks = dbResults.slice(0, this.numberK).map(chunk => ({
+                const topKChunks = dbResults.slice(0, k).map(chunk => ({
                     ...chunk,
                     metadata: { ...chunk.metadata, dbName: db.name }
                 }));
