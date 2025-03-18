@@ -78,12 +78,8 @@ export class SetOfDbs implements BaseDb {
 
     async similaritySearchTopKNChunksStrategy(query: number[], k: number): Promise<ExtractChunkData[]> {
         // Top k/n chunks from each of n databases individually (k chunks): The top k chunks are selected from each of the n sources, with each database contributing equally.
-        const dbCount = this.dbs.length;
-        console.log("dbCount", dbCount);
-        if (dbCount === 0) {
-            throw new Error('No databases available for similarity search.');
-        }
-        const chunksPerDb = Math.max(1, Math.ceil(k / dbCount)); // Calculate chunks per data source
+        console.log("k", k)
+        const chunksPerDb = Math.ceil(k / this.dbs.length); // Calculate chunks per data source
         const allResults = await Promise.all(
             this.dbs.map(async (db) => {
                 const dbResults = await db.database.similaritySearch(query, chunksPerDb); // in this case we need to change k
