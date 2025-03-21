@@ -187,7 +187,16 @@ export class MongoDb implements BaseDb {
     async getChunks(): Promise<ExtractChunkData[]> {
         try {
             const chunks = await this.collection.find().toArray();
-            return chunks;
+            return chunks.map(chunk => ({
+                score: 0, // default if not used in similarity search
+                pageContent: chunk.pageContent,
+                metadata: {
+                    ...chunk.metadata,
+                    source: chunk.source,
+                    id: chunk[MongoDb.UNIQUE_FIELD_NAME],
+                    uniqueLoaderId: chunk[MongoDb.LOADER_FIELD_NAME],
+                },
+            }));
         } catch (error) {
             this.debug('Error fetching chunks:', error);
             throw new Error('Failed to chunks');
