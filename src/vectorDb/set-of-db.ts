@@ -165,12 +165,15 @@ export class SetOfDbs implements BaseDb {
                                     entities: typeof chunk.metadata.entities === 'string' ? JSON.parse(chunk.metadata.entities) : {}
                                 };
                             }
+                            // Extract topics and entities for the chunk
+                            return await this.extractTopicsAndEntities(chunk.pageContent);
+
                             // cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
-                            const { topics, entities } = await this.extractTopicsAndEntities(chunk.pageContent);
-                            chunk.metadata.topics = JSON.stringify(topics);
-                            chunk.metadata.entities = JSON.stringify(entities);
+                            //const { topics, entities } = await this.extractTopicsAndEntities(chunk.pageContent);
+                            // chunk.metadata.topics = JSON.stringify(topics);
+                            // chunk.metadata.entities = JSON.stringify(entities);
                             //await db.database.updateChunkMetadata(chunk.id, chunk.metadata);
-                            return { topics, entities };
+                            //return { topics, entities };
                         })
                     );
     
