@@ -287,6 +287,15 @@ export class SetOfDbs implements BaseDb {
                     const chunks = await db.database.getChunks();
                     const topicsMap = new Map<string, number>();
                     const entitiesMap = new Map<string, number>();
+
+                    // check if the chunks already have topics and entities
+                    if (chunks[0].metadata.topics && chunks[0].metadata.entities) {
+                        return {
+                            db,
+                            topics: typeof chunks[0].metadata.topics === 'string' ? JSON.parse(chunks[0].metadata.topics) : {},
+                            entities: typeof chunks[0].metadata.entities === 'string' ? JSON.parse(chunks[0].metadata.entities) : {}
+                        };
+                    }
     
                     // Process chunks in batches
                     for (let i = 0; i < chunks.length; i += batchSize) {
@@ -305,6 +314,10 @@ export class SetOfDbs implements BaseDb {
                             }
                         });
                     }
+
+                    // Cache the topics and entities in the chunk metadata for future use
+                    chunks[0].metadata.topics = JSON.stringify(Object.fromEntries(topicsMap));
+                    chunks[0].metadata.entities = JSON.stringify(Object.fromEntries(entitiesMap));
     
                     return { 
                         db, 
@@ -329,37 +342,84 @@ export class SetOfDbs implements BaseDb {
         }
     }
 
-    async similaritySearchLLMSummarization(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
-        // Step 1: Generate full-text embeddings for each source
-        const summarisedSources = await Promise.all(
-            this.dbs.map(async db => {
-                const fullText = await db.database.getFullText();
-                const summarizedText = await this.summarizeText(fullText, rawQuery, true);
-                const embeddingRelevance = await RAGEmbedding.getEmbedding().embedQuery(summarizedText);
-                return { db, embeddingRelevance };
-            })
-        );
+    // async similaritySearchLLMSummarization(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
+    //     // Step 1: Generate full-text embeddings for each source
+    //     const summarisedSources = await Promise.all(
+    //         this.dbs.map(async db => {
+    //             const fullText = await db.database.getFullText();
+    //             const summarizedText = await this.summarizeText(fullText, rawQuery, true);
+    //             const embeddingRelevance = await RAGEmbedding.getEmbedding().embedQuery(summarizedText);
+    //             return { db, embeddingRelevance };
+    //         })
+    //     );
 
-        // Step 2: Calculate euclidean similarity between the query and each source's full-text embedding
-        const similarities = summarisedSources.map(({ db, embeddingRelevance }) => ({
-            db,
-            similarity: this.euclideanDistance(this.normalize(query), this.normalize(embeddingRelevance))
-        }));
+    //     // Step 2: Calculate euclidean similarity between the query and each source's full-text embedding
+    //     const similarities = summarisedSources.map(({ db, embeddingRelevance }) => ({
+    //         db,
+    //         similarity: this.euclideanDistance(this.normalize(query), this.normalize(embeddingRelevance))
+    //     }));
 
-        // Step 3: Check the similarity score and select the top k sources
-        const selectedSource = similarities.reduce((highest, current) => {
-            return current.similarity > highest.similarity ? current : highest;
-        }, similarities[0]);
+    //     // Step 3: Check the similarity score and select the top k sources
+    //     const selectedSource = similarities.reduce((highest, current) => {
+    //         return current.similarity > highest.similarity ? current : highest;
+    //     }, similarities[0]);
 
-        // Step 4: Retrieve chunks from the db with the highest similarity score
-        const results = await selectedSource.db.database.similaritySearch(query, k);
-        return results.map(chunk => ({
-            ...chunk,
-            metadata: { ...chunk.metadata, dbName: selectedSource.db.name }
-        }));
-    }
+    //     // Step 4: Retrieve chunks from the db with the highest similarity score
+    //     const results = await selectedSource.db.database.similaritySearch(query, k);
+    //     return results.map(chunk => ({
+    //         ...chunk,
+    //         metadata: { ...chunk.metadata, dbName: selectedSource.db.name }
+    //     }));
+    // }
 
     //summarize full text with relevance to the query and in general
+    
+    async similaritySearchLLMSummarization(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
+        try {
+            // Step 1: Summarize and embed each source in chunks to handle token limits
+            const summarisedSources = await Promise.all(
+                this.dbs.map(async db => {
+                    const fullText = await db.database.getFullText();
+    
+                    // Step 1a: Split full text into smaller chunks to avoid token limits
+                    const textChunks = this.chunkText(fullText, 1024); // Adjust chunk size as needed
+    
+                    // Step 1b: Summarize each chunk and combine the summaries
+                    const chunkSummaries = await Promise.all(
+                        textChunks.map(async chunk => await this.summarizeText(chunk, rawQuery, true))
+                    );
+                    const combinedSummary = chunkSummaries.join(" ");
+    
+                    // Step 1c: Generate embeddings for the combined summary
+                    const embeddingRelevance = await RAGEmbedding.getEmbedding().embedQuery(combinedSummary);
+                    return { db, embeddingRelevance };
+                })
+            );
+    
+            // Step 2: Calculate Euclidean similarity between the query and each source's embedding
+            const normalizedQuery = this.normalize(query);
+            const similarities = summarisedSources.map(({ db, embeddingRelevance }) => ({
+                db,
+                similarity: this.euclideanDistance(normalizedQuery, this.normalize(embeddingRelevance))
+            }));
+    
+            // Step 3: Select the source with the highest similarity score
+            const selectedSource = similarities.reduce((highest, current) => {
+                return current.similarity > highest.similarity ? current : highest;
+            }, similarities[0]);
+    
+            // Step 4: Retrieve chunks from the db with the highest similarity score
+            const results = await selectedSource.db.database.similaritySearch(query, k);
+            return results.map(chunk => ({
+                ...chunk,
+                metadata: { ...chunk.metadata, dbName: selectedSource.db.name }
+            }));
+        } catch (error) {
+            this.debug('Error during LLM summarization similarity search:', error);
+            throw error;
+        }
+    }
+
     private async summarizeText(text: string, query: string, isRelevant: boolean): Promise<string> {
         try {
             const prompt = isRelevant
@@ -405,21 +465,21 @@ export class SetOfDbs implements BaseDb {
             throw new Error('RAGApplication instance is not initialized.');
         }
     
-        const prompt = `Analyze the following text and extract at least 5 to 10 primary topics and entities.  
-        Each topic and entity should be **distinct** and should capture key themes from the text.  
-        Assign a numerical weight (between 0 and 1) to each topic and entity based on its importance.  
+        const prompt = `Analyze the text below and extract **3 to 7 distinct primary topics and entities**.  
+        Assign a weight (0 to 1) to each based on importance.  
+        Respond **strictly** in this JSON format:  
+        {  
+            "topics": { "topic1": weight, "topic2": weight, ..., "topicN": weight },  
+            "entities": { "entity1": weight, "entity2": weight, ..., "entityN": weight }  
+        }  
         
-        Strictly adhere to this response format as a JSON object:
-        {
-            "topics": { "topic1": weight, "topic2": weight, ..., "topicN": weight },
-            "entities": { "entity1": weight, "entity2": weight, ..., "entityN": weight }
-        }
-        
-        - Ensure there are **at least 5 and at most 10** topics.  
-        - Ensure there are **at least 5 and at most 10** entities.  
-        - Do **not** provide additional explanations or extra text.  
-        
-        Text to analyze: "${text}"`;
+        **Rules**:  
+        1. Extract **3 to 7 topics** and **3 to 7 entities**.  
+        2. Weights must reflect importance (higher = more important).  
+        3. Ensure all topics and entities are **distinct and relevant**.  
+        4. Do **not** include explanations or extra text.  
+
+        Text: "${text}"`;
     
         let response: string, topics: Record<string, number>, entities: Record<string, number>;
         response = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
@@ -608,25 +668,14 @@ export class SetOfDbs implements BaseDb {
         return allChunks.flat();
     }
 
-    // function to process chunks with a concurrency limit
-    // async processChunksWithConcurrency(chunks: any[], processFn: (chunk: any) => Promise<any>, concurrency = 70): Promise<any[]> {
-    //     const results = [];
-    //     for (let i = 0; i < chunks.length; i += concurrency) {
-    //         const batch = chunks.slice(i, i + concurrency);
-    //         const batchResults = await Promise.all(batch.map(chunk => processFn(chunk)));
-    //         results.push(...batchResults);
-    //     }
-    //     return results;
-    // }
-
     // chunk the fulltext into smaller chunks
-    // chunkText(text: string, maxTokens: number): string[] {
-    //     const words = text.split(/\s+/); // Split by spaces (or use a tokenizer for better control)
-    //     const chunks = [];
+    chunkText(text: string, maxTokens: number): string[] {
+        const words = text.split(/\s+/); // Split by spaces (or use a tokenizer for better control)
+        const chunks = [];
 
-    //     for (let i = 0; i < words.length; i += maxTokens) {
-    //         chunks.push(words.slice(i, i + maxTokens).join(' '));
-    //     }
-    //     return chunks;
-    // }
+        for (let i = 0; i < words.length; i += maxTokens) {
+            chunks.push(words.slice(i, i + maxTokens).join(' '));
+        }
+        return chunks;
+    }
 }
