@@ -170,4 +170,10 @@ export class WeaviateDb implements BaseDb {
         //     throw error;
         // }
     }
+
+    async getChunks(): Promise<ExtractChunkData[]> {
+        // Returning an empty array as QdrantDb does not support getting all chunks
+        return [];
+    }
+    
 }

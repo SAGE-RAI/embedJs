@@ -81,4 +81,11 @@ export class ChromaDb implements BaseDb {
     async getFullText(): Promise<string> {
         return 'ChromaDB does not support full text search';
     }
+
+    async getChunks(): Promise<ExtractChunkData[]> {
+        // Returning an empty array as ChromaDB does not support getting all chunks
+        return [];
+    }
+
+
 }

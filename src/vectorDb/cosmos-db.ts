@@ -215,4 +215,9 @@ export class CosmosDb implements BaseDb {
     async getFullText(): Promise<string> {
         return 'CosmosDB doesnt support full text';
     }
+
+    async getChunks(): Promise<ExtractChunkData[]> {
+        // Returning an empty array as cosmos does not support getting all chunks
+        return [];
+    }
 }

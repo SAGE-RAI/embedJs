@@ -10,4 +10,5 @@ export interface BaseDb {
     reset(): Promise<void>;
 
     getFullText(): Promise<string>; // to get the full text of the database
+    getChunks(): Promise<ExtractChunkData[]>; // to get all the chunks in the database
 }

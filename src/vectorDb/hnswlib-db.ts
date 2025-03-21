@@ -60,4 +60,9 @@ export class HNSWDb implements BaseDb {
         // Fetch and concatenate all stored chunks as full text
         return 'HNSWDb does not support full text yet!';
     }
+
+    async getChunks(): Promise<ExtractChunkData[]> {
+        // Returning an empty array as HNSWDb does not support getting all chunks
+        return [];
+    }
 }

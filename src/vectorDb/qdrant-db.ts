@@ -116,4 +116,9 @@ export class QdrantDb implements BaseDb {
         // });
         // return allChunks.map((chunk) => (<any>chunk.payload).pageContent).join(' ');
     }
+
+    async getChunks(): Promise<ExtractChunkData[]> {
+        // Returning an empty array as QdrantDb does not support getting all chunks
+        return [];
+    }
 }

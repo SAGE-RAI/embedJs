@@ -174,14 +174,23 @@ export class MongoDb implements BaseDb {
     }
     
     async getFullText(): Promise<string> {
-        // Fetch and concatenate all stored chunks as full text
         try {
             const chunks = await this.collection.find().toArray();
             const fullText = chunks.map(chunk => chunk.pageContent).join(' ');
             return fullText;
         } catch (error) {
-            this.debug('Error fetching chunks:', error);
+            this.debug('Error fetching chunks for full text:', error);
             throw new Error('Failed to fetch and concatenate chunks');
+        }
+    }
+
+    async getChunks(): Promise<ExtractChunkData[]> {
+        try {
+            const chunks = await this.collection.find().toArray();
+            return chunks;
+        } catch (error) {
+            this.debug('Error fetching chunks:', error);
+            throw new Error('Failed to chunks');
         }
     }
 }
