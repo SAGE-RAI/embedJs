@@ -450,29 +450,35 @@ export class SetOfDbs implements BaseDb {
     }
 
     private computeRelevanceScore(sourceTopics: Record<string, number>, sourceEntities: Record<string, number>, queryTopicsAndEntities: { topics: Record<string, number>, entities: Record<string, number> }): number {
-        let relevanceScore = 0;
-        let totalWeight = 0;
-    
-        // Compute topic relevance
-        for (const [topic, weight] of Object.entries(sourceTopics)) {
-            if (queryTopicsAndEntities.topics[topic]) {
-                const queryWeight = queryTopicsAndEntities.topics[topic];
-                relevanceScore += weight * queryWeight; // Use float weights
-                totalWeight += queryWeight;
+        // function to compute relevance for a given set of items
+        const computeRelevance = (
+            sourceItems: Record<string, number>,
+            queryItems: Record<string, number>
+        ): { score: number, totalWeight: number } => {
+            let score = 0;
+            let totalWeight = 0;
+
+            for (const [item, weight] of Object.entries(sourceItems)) {
+                if (queryItems[item]) {
+                    const queryWeight = queryItems[item];
+                    score += weight * queryWeight; // Use float weights
+                    totalWeight += queryWeight;
+                }
             }
-        }
-    
-        // Compute entity relevance
-        for (const [entity, weight] of Object.entries(sourceEntities)) {
-            if (queryTopicsAndEntities.entities[entity]) {
-                const queryWeight = queryTopicsAndEntities.entities[entity];
-                relevanceScore += weight * queryWeight; // Use float weights
-                totalWeight += queryWeight;
-            }
-        }
-    
-        // Normalize score
-        return totalWeight > 0 ? relevanceScore / totalWeight : 0;
+
+            return { score, totalWeight };
+        };
+
+        // Compute relevance for topics and entities
+        const topicRelevance = computeRelevance(sourceTopics, queryTopicsAndEntities.topics);
+        const entityRelevance = computeRelevance(sourceEntities, queryTopicsAndEntities.entities);
+
+        // Combine scores and weights
+        const totalScore = topicRelevance.score + entityRelevance.score;
+        const totalWeight = topicRelevance.totalWeight + entityRelevance.totalWeight;
+
+        // Normalize score and ensure it's between 0 and 1
+        return totalWeight > 0 ? Math.min(1, totalScore / totalWeight) : 0;
     }
     
     private async retrieveChunks(scoredSources: { db: { database: BaseDb, name: string }, relevanceScore?: number, weight?: number }[], query: number[], k: number): Promise<ExtractChunkData[]> {
@@ -603,24 +609,24 @@ export class SetOfDbs implements BaseDb {
     }
 
     // function to process chunks with a concurrency limit
-    async processChunksWithConcurrency(chunks: any[], processFn: (chunk: any) => Promise<any>, concurrency = 70): Promise<any[]> {
-        const results = [];
-        for (let i = 0; i < chunks.length; i += concurrency) {
-            const batch = chunks.slice(i, i + concurrency);
-            const batchResults = await Promise.all(batch.map(chunk => processFn(chunk)));
-            results.push(...batchResults);
-        }
-        return results;
-    }
+    // async processChunksWithConcurrency(chunks: any[], processFn: (chunk: any) => Promise<any>, concurrency = 70): Promise<any[]> {
+    //     const results = [];
+    //     for (let i = 0; i < chunks.length; i += concurrency) {
+    //         const batch = chunks.slice(i, i + concurrency);
+    //         const batchResults = await Promise.all(batch.map(chunk => processFn(chunk)));
+    //         results.push(...batchResults);
+    //     }
+    //     return results;
+    // }
 
     // chunk the fulltext into smaller chunks
-    chunkText(text: string, maxTokens: number): string[] {
-        const words = text.split(/\s+/); // Split by spaces (or use a tokenizer for better control)
-        const chunks = [];
+    // chunkText(text: string, maxTokens: number): string[] {
+    //     const words = text.split(/\s+/); // Split by spaces (or use a tokenizer for better control)
+    //     const chunks = [];
 
-        for (let i = 0; i < words.length; i += maxTokens) {
-            chunks.push(words.slice(i, i + maxTokens).join(' '));
-        }
-        return chunks;
-    }
+    //     for (let i = 0; i < words.length; i += maxTokens) {
+    //         chunks.push(words.slice(i, i + maxTokens).join(' '));
+    //     }
+    //     return chunks;
+    // }
 }
