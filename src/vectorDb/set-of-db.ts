@@ -287,23 +287,32 @@ export class SetOfDbs implements BaseDb {
                     const chunks = await db.database.getChunks();
                     const topicsMap = new Map<string, number>();
                     const entitiesMap = new Map<string, number>();
-
-                    // check if the chunks already have topics and entities
-                    if (chunks[0].metadata.topics && chunks[0].metadata.entities) {
-                        return {
-                            db,
-                            topics: typeof chunks[0].metadata.topics === 'string' ? JSON.parse(chunks[0].metadata.topics) : {},
-                            entities: typeof chunks[0].metadata.entities === 'string' ? JSON.parse(chunks[0].metadata.entities) : {}
-                        };
-                    }
     
                     // Process chunks in batches
                     for (let i = 0; i < chunks.length; i += batchSize) {
                         const batch = chunks.slice(i, i + batchSize);
                         const batchResults = await Promise.all(
-                            batch.map(async chunk => await this.extractTopicsAndEntities(chunk.pageContent))
+                            batch.map(async chunk => {
+                                // Check if topics and entities are already cached in metadata
+                                if (chunk.metadata?.topics && chunk.metadata?.entities) {
+                                    return {
+                                        topics: chunk.metadata.topics,
+                                        entities: chunk.metadata.entities
+                                    };
+                                } else {
+                                    // Extract topics and entities if not cached
+                                    const result = await this.extractTopicsAndEntities(chunk.pageContent);
+                                    // Cache the result in the chunk metadata
+                                    chunk.metadata = {
+                                        ...chunk.metadata,
+                                        topics: JSON.stringify(result.topics),
+                                        entities: JSON.stringify(result.entities)
+                                    };
+                                    return result;
+                                }
+                            })
                         );
-    
+
                         // Aggregate results for the current batch
                         batchResults.forEach(({ topics, entities }) => {
                             for (const [topic, weight] of Object.entries(topics)) {
@@ -314,10 +323,6 @@ export class SetOfDbs implements BaseDb {
                             }
                         });
                     }
-
-                    // Cache the topics and entities in the chunk metadata for future use
-                    chunks[0].metadata.topics = JSON.stringify(Object.fromEntries(topicsMap));
-                    chunks[0].metadata.entities = JSON.stringify(Object.fromEntries(entitiesMap));
     
                     return { 
                         db, 
