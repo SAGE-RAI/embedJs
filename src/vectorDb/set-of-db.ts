@@ -151,43 +151,28 @@ export class SetOfDbs implements BaseDb {
                 this.dbs.map(async db => {
                     // Get the chunk or the pageContent and extract the topics and entities
                     const chunks = await db.database.getChunks(); 
-                    const chunkResults = await Promise.all(
-                        chunks.map(async chunk => {
-                            // Check if topics and entities are already cached in the chunk metadata.
-                            if (chunk.metadata.topics && chunk.metadata.entities) {
-                                return {
-                                    chunk,
-                                    topics: chunk.metadata.topics,
-                                    entities: chunk.metadata.entities
-                                };
-                            }
-
-                            // Extract topics and entities from the chunk
-                            const { topics, entities } = await this.extractTopicsAndEntities(chunk.pageContent);
-
-                            // Cache the topics and entities in the chunk metadata for future use.
-                            chunk.metadata.topics = JSON.stringify(topics);
-                            chunk.metadata.entities = JSON.stringify(entities);
-
-                            // Update the chunk with the new metadata
-                            // await db.database.updateChunkMetadata(chunk.id, chunk.metadata);
-                            return {
-                                chunk,
-                                topics,
-                                entities
-                            };
-                        })
-                    );
-
                     // cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
                     // const fullText = await db.database.getFullText(); // do this for each chunk rather than the full text ****, go through the chunks and find which sources has the most chunk topics and entities that are similar to the query
                     // // Step 1: Split full text into smaller chunks (~512-1024 tokens each)
                     // const textChunks = this.chunkText(fullText, 512); // might reduce to 256 // this will not be needed if we are using the chunks
     
                     // // Step 2: Extract topics/entities for each chunk separately // * cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
-                    // const chunkResults = await Promise.all(
-                    //     textChunks.map(async chunk => await this.extractTopicsAndEntities(chunk))
-                    // );
+                    const chunkResults = await Promise.all(
+                        chunks.map(async chunk => {
+                            if (chunk.metadata.topics && chunk.metadata.entities) {
+                                return {
+                                    topics: typeof chunk.metadata.topics === 'string' ? JSON.parse(chunk.metadata.topics) : {},
+                                    entities: typeof chunk.metadata.entities === 'string' ? JSON.parse(chunk.metadata.entities) : {}
+                                };
+                            }
+                            // cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
+                            const { topics, entities } = await this.extractTopicsAndEntities(chunk.pageContent);
+                            chunk.metadata.topics = JSON.stringify(topics);
+                            chunk.metadata.entities = JSON.stringify(entities);
+                            //await db.database.updateChunkMetadata(chunk.id, chunk.metadata);
+                            return { topics, entities };
+                        })
+                    );
     
                     // Step 3: Aggregate extracted topics/entities across all chunks
                     const topicsMap = new Map<string, number>();
@@ -196,16 +181,16 @@ export class SetOfDbs implements BaseDb {
                     chunkResults.forEach(({ topics, entities }) => {
                         for (const [topic, weight] of Object.entries(topics)) {
                             if (topicsMap.has(topic)) {
-                                topicsMap.set(topic, topicsMap.get(topic)! + weight); // Accumulate weights
+                                topicsMap.set(topic, topicsMap.get(topic)! + (weight as number)); // Accumulate weights
                             } else {
-                                topicsMap.set(topic, weight);
+                                topicsMap.set(topic, weight as number);
                             }
                         }
                         for (const [entity, weight] of Object.entries(entities)) {
                             if (entitiesMap.has(entity)) {
-                                entitiesMap.set(entity, entitiesMap.get(entity)! + weight); // Accumulate weights
+                                entitiesMap.set(entity, entitiesMap.get(entity)! + (weight as number)); // Accumulate weights
                             } else {
-                                entitiesMap.set(entity, weight);
+                                entitiesMap.set(entity, weight as number);
                             }
                         }
                     });
