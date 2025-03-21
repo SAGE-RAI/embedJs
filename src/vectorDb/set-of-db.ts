@@ -141,6 +141,86 @@ export class SetOfDbs implements BaseDb {
         }
     }
     
+    // async similaritySearchTopicClassificationStrategy(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
+    //     try {
+    //         // Step 1: Extract topics and entities from the user's query
+    //         const queryTopicsAndEntities = await this.extractTopicsAndEntities(rawQuery);
+    
+    //         // Step 2: Extract topics and entities from the sources
+    //         const sourceTopicEntities = await Promise.all(
+    //             this.dbs.map(async db => {
+    //                 // Get the chunk or the pageContent and extract the topics and entities
+    //                 const chunks = await db.database.getChunks(); 
+    //                 // cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
+    //                 // const fullText = await db.database.getFullText(); // do this for each chunk rather than the full text ****, go through the chunks and find which sources has the most chunk topics and entities that are similar to the query
+    //                 // // Step 1: Split full text into smaller chunks (~512-1024 tokens each)
+    //                 // const textChunks = this.chunkText(fullText, 512); // might reduce to 256 // this will not be needed if we are using the chunks
+    
+    //                 // // Step 2: Extract topics/entities for each chunk separately // * cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
+    //                 const chunkResults = await Promise.all(
+    //                     chunks.map(async chunk => {
+    //                         if (chunk.metadata.topics && chunk.metadata.entities) {
+    //                             return {
+    //                                 topics: typeof chunk.metadata.topics === 'string' ? JSON.parse(chunk.metadata.topics) : {},
+    //                                 entities: typeof chunk.metadata.entities === 'string' ? JSON.parse(chunk.metadata.entities) : {}
+    //                             };
+    //                         }
+    //                         // Extract topics and entities for the chunk
+    //                         return await this.extractTopicsAndEntities(chunk.pageContent);
+
+    //                         // cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
+    //                         //const { topics, entities } = await this.extractTopicsAndEntities(chunk.pageContent);
+    //                         // chunk.metadata.topics = JSON.stringify(topics);
+    //                         // chunk.metadata.entities = JSON.stringify(entities);
+    //                         //await db.database.updateChunkMetadata(chunk.id, chunk.metadata);
+    //                         //return { topics, entities };
+    //                     })
+    //                 );
+    
+    //                 // Step 3: Aggregate extracted topics/entities across all chunks
+    //                 const topicsMap = new Map<string, number>();
+    //                 const entitiesMap = new Map<string, number>();
+    
+    //                 chunkResults.forEach(({ topics, entities }) => {
+    //                     for (const [topic, weight] of Object.entries(topics)) {
+    //                         if (topicsMap.has(topic)) {
+    //                             topicsMap.set(topic, topicsMap.get(topic)! + (weight as number)); // Accumulate weights
+    //                         } else {
+    //                             topicsMap.set(topic, weight as number);
+    //                         }
+    //                     }
+    //                     for (const [entity, weight] of Object.entries(entities)) {
+    //                         if (entitiesMap.has(entity)) {
+    //                             entitiesMap.set(entity, entitiesMap.get(entity)! + (weight as number)); // Accumulate weights
+    //                         } else {
+    //                             entitiesMap.set(entity, weight as number);
+    //                         }
+    //                     }
+    //                 });
+    
+    //                 return { 
+    //                     db, 
+    //                     topics: Object.fromEntries(topicsMap), // Convert Map to object
+    //                     entities: Object.fromEntries(entitiesMap) // Convert Map to object
+    //                 };
+    //             })
+    //         );
+    
+    //         // Step 3: Calculate relevance scores
+    //         const scoredSources = sourceTopicEntities.map(({ db, topics, entities }) => {
+    //             const relevanceScore = this.computeRelevanceScore(topics, entities, queryTopicsAndEntities);
+    //             return { db, relevanceScore };
+    //         });
+    
+    //         // Step 4: Retrieve chunks from the top k sources
+    //         const results = await this.retrieveChunks(scoredSources, query, k);
+    //         return results;
+    //     } catch (error) {
+    //         this.debug('Error during topic classification strategy similarity search:', error);
+    //         throw error;
+    //     }
+    // }
+
     async similaritySearchTopicClassificationStrategy(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
         try {
             // Step 1: Extract topics and entities from the user's query
@@ -149,33 +229,31 @@ export class SetOfDbs implements BaseDb {
             // Step 2: Extract topics and entities from the sources
             const sourceTopicEntities = await Promise.all(
                 this.dbs.map(async db => {
-                    // Get the chunk or the pageContent and extract the topics and entities
-                    const chunks = await db.database.getChunks(); 
-                    // cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
-                    // const fullText = await db.database.getFullText(); // do this for each chunk rather than the full text ****, go through the chunks and find which sources has the most chunk topics and entities that are similar to the query
-                    // // Step 1: Split full text into smaller chunks (~512-1024 tokens each)
-                    // const textChunks = this.chunkText(fullText, 512); // might reduce to 256 // this will not be needed if we are using the chunks
+                    // Get the chunks from the database
+                    const chunks = await db.database.getChunks();
     
-                    // // Step 2: Extract topics/entities for each chunk separately // * cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
-                    const chunkResults = await Promise.all(
-                        chunks.map(async chunk => {
-                            if (chunk.metadata.topics && chunk.metadata.entities) {
-                                return {
-                                    topics: typeof chunk.metadata.topics === 'string' ? JSON.parse(chunk.metadata.topics) : {},
-                                    entities: typeof chunk.metadata.entities === 'string' ? JSON.parse(chunk.metadata.entities) : {}
-                                };
-                            }
-                            // Extract topics and entities for the chunk
-                            return await this.extractTopicsAndEntities(chunk.pageContent);
-
-                            // cache the topics and entities for each chunk and save in the metadata for easy access than redoing every time
-                            //const { topics, entities } = await this.extractTopicsAndEntities(chunk.pageContent);
-                            // chunk.metadata.topics = JSON.stringify(topics);
-                            // chunk.metadata.entities = JSON.stringify(entities);
-                            //await db.database.updateChunkMetadata(chunk.id, chunk.metadata);
-                            //return { topics, entities };
-                        })
-                    );
+                    // Process chunks in parallel with a concurrency limit
+                    const chunkResults = await this.processChunksWithConcurrency(chunks, async chunk => {
+                        // Check if topics and entities are already cached in the chunk metadata
+                        if (chunk.metadata.topics && chunk.metadata.entities) {
+                            return {
+                                topics: typeof chunk.metadata.topics === 'string' ? JSON.parse(chunk.metadata.topics) : {},
+                                entities: typeof chunk.metadata.entities === 'string' ? JSON.parse(chunk.metadata.entities) : {}
+                            };
+                        }
+    
+                        // Extract topics and entities from the chunk
+                        const { topics, entities } = await this.extractTopicsAndEntities(chunk.pageContent);
+    
+                        // Cache the topics and entities in the chunk metadata for future use
+                        chunk.metadata.topics = JSON.stringify(topics);
+                        chunk.metadata.entities = JSON.stringify(entities);
+    
+                        // Update the chunk metadata in the database (optional, can be done asynchronously)
+                        // await db.database.updateChunkMetadata(chunk.id, chunk.metadata);
+    
+                        return { topics, entities };
+                    });
     
                     // Step 3: Aggregate extracted topics/entities across all chunks
                     const topicsMap = new Map<string, number>();
@@ -183,23 +261,15 @@ export class SetOfDbs implements BaseDb {
     
                     chunkResults.forEach(({ topics, entities }) => {
                         for (const [topic, weight] of Object.entries(topics)) {
-                            if (topicsMap.has(topic)) {
-                                topicsMap.set(topic, topicsMap.get(topic)! + (weight as number)); // Accumulate weights
-                            } else {
-                                topicsMap.set(topic, weight as number);
-                            }
+                            topicsMap.set(topic, (topicsMap.get(topic) || 0) + (weight as number));
                         }
                         for (const [entity, weight] of Object.entries(entities)) {
-                            if (entitiesMap.has(entity)) {
-                                entitiesMap.set(entity, entitiesMap.get(entity)! + (weight as number)); // Accumulate weights
-                            } else {
-                                entitiesMap.set(entity, weight as number);
-                            }
+                            entitiesMap.set(entity, (entitiesMap.get(entity) || 0) + (weight as number));
                         }
                     });
     
-                    return { 
-                        db, 
+                    return {
+                        db,
                         topics: Object.fromEntries(topicsMap), // Convert Map to object
                         entities: Object.fromEntries(entitiesMap) // Convert Map to object
                     };
@@ -492,5 +562,16 @@ export class SetOfDbs implements BaseDb {
             this.dbs.map(async db => db.database.getChunks())
         );
         return allChunks.flat();
+    }
+
+    // function to process chunks with a concurrency limit
+    async processChunksWithConcurrency(chunks: any[], processFn: (chunk: any) => Promise<any>, concurrency = 5): Promise<any[]> {
+        const results = [];
+        for (let i = 0; i < chunks.length; i += concurrency) {
+            const batch = chunks.slice(i, i + concurrency);
+            const batchResults = await Promise.all(batch.map(chunk => processFn(chunk)));
+            results.push(...batchResults);
+        }
+        return results;
     }
 }
