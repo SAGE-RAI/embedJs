@@ -411,6 +411,10 @@ export class SetOfDbs implements BaseDb {
                     // Step 1a: Summarize each chunk and combine
                     const chunkSummaries = await Promise.all(
                         chunks.map(async (chunk) => {
+                            if (!chunk || !chunk.pageContent) {
+                                this.debug('Skipping invalid chunk:', chunk);
+                                return '';
+                            }
                             // Otherwise generate and cache summary
                             const summary = await this.summarizeText(chunk.pageContent, rawQuery, true);
                             return summary;
