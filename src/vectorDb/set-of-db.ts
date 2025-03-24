@@ -281,7 +281,7 @@ export class SetOfDbs implements BaseDb {
             const queryTopicsAndEntities = await this.extractTopicsAndEntities(rawQuery);
     
             // Step 2: Process chunks in batches to avoid limit errors
-            const batchSize = 70; // Adjust based on system limits
+            const batchSize = 100; // Adjust based on system limits
             const sourceTopicEntities = await Promise.all(
                 this.dbs.map(async db => {
                     const chunks = await db.database.getChunks();
@@ -296,12 +296,13 @@ export class SetOfDbs implements BaseDb {
                                 // Check if topics and entities are already cached in metadata
                                 if (chunk.metadata?.topics && chunk.metadata?.entities) {
                                     return {
-                                        topics: chunk.metadata.topics,
-                                        entities: chunk.metadata.entities
+                                        topics: JSON.parse(chunk.metadata.topics as string),
+                                        entities: JSON.parse(chunk.metadata.entities as string)
                                     };
                                 } else {
                                     // Extract topics and entities if not cached
                                     const result = await this.extractTopicsAndEntities(chunk.pageContent);
+
                                     // Cache the result in the chunk metadata
                                     chunk.metadata = {
                                         ...chunk.metadata,
@@ -316,10 +317,10 @@ export class SetOfDbs implements BaseDb {
                         // Aggregate results for the current batch
                         batchResults.forEach(({ topics, entities }) => {
                             for (const [topic, weight] of Object.entries(topics)) {
-                                topicsMap.set(topic, (topicsMap.get(topic) || 0) + weight);
+                                topicsMap.set(topic, (topicsMap.get(topic) || 0) + (weight as number));
                             }
                             for (const [entity, weight] of Object.entries(entities)) {
-                                entitiesMap.set(entity, (entitiesMap.get(entity) || 0) + weight);
+                                entitiesMap.set(entity, (entitiesMap.get(entity) || 0) + (weight as number));
                             }
                         });
                     }
@@ -379,58 +380,152 @@ export class SetOfDbs implements BaseDb {
 
     //summarize full text with relevance to the query and in general
     
+    // async similaritySearchLLMSummarization(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
+    //     try {
+    //         // Step 1: Summarize and embed each source in chunks to handle token limits
+    //         const summarisedSources = await Promise.all(
+    //             this.dbs.map(async db => {
+    //                 const fullText = await db.database.getFullText();
+    
+    //                 // Step 1a: Split full text into smaller chunks to avoid token limits
+    //                 const textChunks = this.chunkText(fullText, 1024); // Adjust chunk size as needed
+    
+    //                 // Step 1b: Summarize each chunk and combine the summaries
+    //                 const chunkSummaries = await Promise.all(
+    //                     textChunks.map(async chunk => await this.summarizeText(chunk, rawQuery, true))
+    //                 );
+    //                 const combinedSummary = chunkSummaries.join(" ");
+    
+    //                 // Step 1c: Generate embeddings for the combined summary
+    //                 const embeddingRelevance = await RAGEmbedding.getEmbedding().embedQuery(combinedSummary);
+    //                 return { db, embeddingRelevance };
+    //             })
+    //         );
+    
+    //         // Step 2: Calculate Euclidean similarity between the query and each source's embedding
+    //         const normalizedQuery = this.normalize(query);
+    //         const similarities = summarisedSources.map(({ db, embeddingRelevance }) => ({
+    //             db,
+    //             similarity: this.euclideanDistance(normalizedQuery, this.normalize(embeddingRelevance))
+    //         }));
+    
+    //         // Step 3: Select the source with the highest similarity score
+    //         const selectedSource = similarities.reduce((highest, current) => {
+    //             return current.similarity > highest.similarity ? current : highest;
+    //         }, similarities[0]);
+    
+    //         // Step 4: Retrieve chunks from the db with the highest similarity score
+    //         const results = await selectedSource.db.database.similaritySearch(query, k);
+    //         return results.map(chunk => ({
+    //             ...chunk,
+    //             metadata: { ...chunk.metadata, dbName: selectedSource.db.name }
+    //         }));
+    //     } catch (error) {
+    //         this.debug('Error during LLM summarization similarity search:', error);
+    //         throw error;
+    //     }
+    // }
+
     async similaritySearchLLMSummarization(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
         try {
             // Step 1: Summarize and embed each source in chunks to handle token limits
             const summarisedSources = await Promise.all(
-                this.dbs.map(async db => {
+                this.dbs.map(async (db) => {
                     const fullText = await db.database.getFullText();
-    
+                    
                     // Step 1a: Split full text into smaller chunks to avoid token limits
                     const textChunks = this.chunkText(fullText, 1024); // Adjust chunk size as needed
-    
+                    
                     // Step 1b: Summarize each chunk and combine the summaries
                     const chunkSummaries = await Promise.all(
-                        textChunks.map(async chunk => await this.summarizeText(chunk, rawQuery, true))
+                        textChunks.map(async (chunk) => await this.summarizeText(chunk, rawQuery, true))
                     );
                     const combinedSummary = chunkSummaries.join(" ");
-    
+                    
                     // Step 1c: Generate embeddings for the combined summary
                     const embeddingRelevance = await RAGEmbedding.getEmbedding().embedQuery(combinedSummary);
+                    
                     return { db, embeddingRelevance };
                 })
             );
     
-            // Step 2: Calculate Euclidean similarity between the query and each source's embedding
+            // Step 2: Calculate composite scores for each source
             const normalizedQuery = this.normalize(query);
-            const similarities = summarisedSources.map(({ db, embeddingRelevance }) => ({
-                db,
-                similarity: this.euclideanDistance(normalizedQuery, this.normalize(embeddingRelevance))
-            }));
+            
+            const calculateCompositeScore = ({db, embeddingRelevance}) => {
+                const similarity = this.euclideanDistance(normalizedQuery, this.normalize(embeddingRelevance));
+                const confidence = 1 / (1 + Math.exp(-similarity)); // Sigmoid to normalize confidence
+                return { db, similarity, confidence };
+            };
     
-            // Step 3: Select the source with the highest similarity score
-            const selectedSource = similarities.reduce((highest, current) => {
-                return current.similarity > highest.similarity ? current : highest;
-            }, similarities[0]);
+            const scoredSources = summarisedSources.map(calculateCompositeScore);
     
-            // Step 4: Retrieve chunks from the db with the highest similarity score
+            // Log the scores for debugging
+            this.debug('Database selection scores:', scoredSources.map(s => ({
+                db: s.db.name,
+                similarity: s.similarity,
+                confidence: s.confidence,
+                compositeScore: s.similarity * s.confidence
+            })));
+    
+            // Step 3: Select source with highest composite score
+            const selectedSource = scoredSources.reduce((best, current) => {
+                const currentScore = current.similarity * current.confidence;
+                const bestScore = best.similarity * best.confidence;
+                return currentScore > bestScore ? current : best;
+            }, scoredSources[0]);
+    
+            // Log the final selection
+            this.debug(`Selected database: ${selectedSource.db.name} with composite score: ${
+                (selectedSource.similarity * selectedSource.confidence).toFixed(4)
+            }`);
+    
+            // Step 4: Retrieve chunks from the selected database
             const results = await selectedSource.db.database.similaritySearch(query, k);
+            
             return results.map(chunk => ({
                 ...chunk,
-                metadata: { ...chunk.metadata, dbName: selectedSource.db.name }
+                metadata: { 
+                    ...chunk.metadata, 
+                    dbName: selectedSource.db.name,
+                    selectionScore: selectedSource.similarity * selectedSource.confidence
+                }
             }));
         } catch (error) {
             this.debug('Error during LLM summarization similarity search:', error);
             throw error;
         }
     }
-
     private async summarizeText(text: string, query: string, isRelevant: boolean): Promise<string> {
         try {
             const prompt = isRelevant
-            ? `Summarize the following content, focusing on the key points and main ideas relevant to the query: "${query}". Ensure the summary is clear, accurate, and free of opinions or additional information not present in the original text. Here is the text to summarize:\n\n${text}`
-            : `Summarize the following content, focusing on the main ideas, key points, and essential details while ensuring clarity and coherence. Do not include personal opinions or any information not present in the original text. Here is the text to summarize:\n\n${text}`;
-        
+            ? `Analyze the following text and create a concise, factual summary focused specifically on content relevant to: "${query}".
+            
+            **Requirements:**
+            1. Include only information directly related to the query
+            2. Omit all tangential or irrelevant details
+            3. Present key points in order of relevance to the query
+            4. Use clear, objective language without interpretation
+            5. Maintain all important factual content
+            6. Keep summary under 200 words
+            7. Do not include personal opinions or any information not present in the original text.
+            
+            Text to summarize:
+            ${text}`
+            
+            : `Create a comprehensive yet concise summary of the following text, capturing all essential information.
+            
+            **Requirements:**
+            1. Identify and include all main ideas and key points
+            2. Preserve critical factual information
+            3. Organize information logically
+            4. Use clear, objective language
+            5. Avoid opinions, interpretations or external information
+            6. Keep summary under 250 words
+            7. Do not include personal opinions or any information not present in the original text.
+            
+            Text to summarize:
+            ${text}`;
             const summary = await this.ragApplication.silentConversationQuery(prompt, null, 'default', []);
             return summary;
         } catch (error) {
