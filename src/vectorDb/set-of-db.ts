@@ -403,23 +403,26 @@ export class SetOfDbs implements BaseDb {
             // );
 
             // Step 1: Process each database using its existing chunks
+            const batchSize = 100; // Adjust based on system limits
             const summarisedSources = await Promise.all(
                 this.dbs.map(async (db) => {
                     // Get pre-chunked content directly
                     const chunks = await db.database.getChunks();
-                    
+
                     // Step 1a: Summarize each chunk and combine
-                    const chunkSummaries = await Promise.all(
-                        chunks.map(async (chunk) => {
-                            if (!chunk || !chunk.pageContent) {
-                                this.debug('Skipping invalid chunk:', chunk);
-                                return '';
-                            }
-                            // Otherwise generate and cache summary
-                            const summary = await this.summarizeText(chunk.pageContent, rawQuery, true);
-                            return summary;
-                        })
-                    );
+                    // Process chunks in batches
+                    const chunkSummaries: string[] = [];
+                    for (let i = 0; i < chunks.length; i += batchSize) {
+                        const batch = chunks.slice(i, i + batchSize);
+                        const batchSummaries = await Promise.all(
+                            batch.map(async chunk => {
+                                // summarize the chunk
+                                const summary = await this.summarizeText(chunk.pageContent, rawQuery, true);
+                                return summary;
+                            })
+                        );
+                        chunkSummaries.push(...batchSummaries);
+                    }
                     
                     // Combine summaries with context
                     const combinedSummary = chunkSummaries.join("\n\n");
