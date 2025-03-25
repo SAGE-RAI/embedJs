@@ -410,30 +410,38 @@ export class SetOfDbs implements BaseDb {
                     const chunks = await db.database.getChunks();
 
                     // Step 1a: Summarize each chunk and combine
-                    // Process chunks in batches
                     const chunkSummaries: string[] = [];
                     for (let i = 0; i < chunks.length; i += batchSize) {
                         const batch = chunks.slice(i, i + batchSize);
                         const batchSummaries = await Promise.all(
-                            batch.map(async chunk => {
-                                // summarize the chunk
-                                const summary = await this.summarizeText(chunk.pageContent, rawQuery, true);
-                                return summary;
+                            batch.map(async (chunk) => {
+                                try {
+                                    // Summarize the chunk
+                                    return await this.summarizeText(chunk.pageContent, rawQuery, true);
+                                } catch (error) {
+                                    this.debug('Error summarizing chunk:', error);
+                                    return ''; // Fallback to an empty summary for failed chunks
+                                }
                             })
                         );
-                        chunkSummaries.push(...batchSummaries);
+                        chunkSummaries.push(...batchSummaries.filter(summary => summary.trim() !== '')); // Filter out empty summaries
                     }
-                    
+
                     // Combine summaries with context
-                    const combinedSummary = chunkSummaries.join("\n\n");
-                    
+                    const combinedSummary = chunkSummaries.join('\n\n');
+
                     // Step 1b: Generate embedding for combined summary
-                    const embeddingRelevance = await RAGEmbedding.getEmbedding().embedQuery(combinedSummary);
-                    
+                    let embeddingRelevance: number[];
+                    try {
+                        embeddingRelevance = await RAGEmbedding.getEmbedding().embedQuery(combinedSummary);
+                    } catch (error) {
+                        this.debug('Error generating embedding for combined summary:', error);
+                        embeddingRelevance = []; // Fallback to an empty embedding
+                    }
+
                     return { db, embeddingRelevance };
                 })
             );
-    
             // Step 2: Calculate Euclidean similarity between the query and each source's embedding
             const normalizedQuery = this.normalize(query);
             const similarities = summarisedSources.map(({ db, embeddingRelevance }) => ({
