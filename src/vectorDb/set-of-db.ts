@@ -407,7 +407,7 @@ export class SetOfDbs implements BaseDb {
                     
                     // Filter and add non-empty summaries
                     for (const summary of batchSummaries) {
-                        if (summary.trim()) chunkSummaries.push(summary);
+                        if (summary && summary.trim()) chunkSummaries.push(summary);
                     }
                 }
     
@@ -454,27 +454,19 @@ export class SetOfDbs implements BaseDb {
     private async summarizeText(text: string, query: string, isRelevant: boolean): Promise<string> {
         // Cache prompt templates to avoid recreation
         const promptTemplates = {
-            relevant: `Create a concise, factual summary of the following text that specifically addresses the query: "${query}". Follow these rules:
-            1. Focus exclusively on information that directly relates to "${query}"
-            2. Preserve all key facts, figures, names, dates, and technical details
-            3. Remove all examples, anecdotes, and repetitive information
-            4. Maintain original terminology and avoid paraphrasing technical terms
-            5. Keep the summary under 5 sentences unless complex concepts require more
-            6. Never add information not present in the original text
+            relevant: `Summarize the content below, paying attention to what is relevant to the query: "${query}".  
+                - Ensure the summary is **concise yet sufficiently detailed** to capture key points.  
+                - The summary should be **clear, accurate, and contextually relevant**.  
+                - Avoid opinions, interpretations, or extra information not in the original text.  
+                Text to summarize: ${text}  
+                Respond with **only** the summary, without extra text or formatting.`,
             
-            Text to summarize:
-            ${text}`,
-            
-            general: `Create a concise, factual summary of the following text that captures all essential information. Follow these rules:
-            1. Identify and preserve the 3-5 most important concepts
-            2. Include key names, dates, numbers, and technical terms
-            3. Remove examples, anecdotes, and repetitive content
-            4. Maintain original terminology
-            5. Structure the summary hierarchically (main point first, supporting details after)
-            6. Never add information not present in the original
-            
-            Text to summarize:
-            ${text}`
+            general: `Summarize the following text clearly and concisely.  
+                - Capture **main ideas, key points, and essential details**.  
+                - The summary should be **neutral, structured, and coherent**.  
+                - **Exclude** personal opinions or any extraneous information.  
+                Text to summarize:${text}
+                Respond with **only** the summary, without extra text or formatting.`
         };
     
         try {
