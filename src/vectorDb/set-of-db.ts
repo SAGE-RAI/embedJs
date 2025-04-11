@@ -274,43 +274,42 @@ export class SetOfDbs implements BaseDb {
     //     }
     // }
 
-    // new implementation of the topic classification strategy
+    // Topic classification strategy
     async similaritySearchTopicClassificationStrategy(query: number[], k: number, rawQuery: string): Promise<ExtractChunkData[]> {
         try {
             // Step 1: Extract topics and entities from the user's query
             const queryTopicsAndEntities = await this.extractTopicsAndEntities(rawQuery);
-    
-            // Step 2: Process chunks in batches to avoid limit errors
-            const batchSize = 100; // Adjust based on system limits
+
+            // Step 2: Process chunks in parallel with optimized batching
             const sourceTopicEntities = await Promise.all(
                 this.dbs.map(async db => {
                     const chunks = await db.database.getChunks();
                     const topicsMap = new Map<string, number>();
                     const entitiesMap = new Map<string, number>();
-    
-                    // Process chunks in batches
-                    for (let i = 0; i < chunks.length; i += batchSize) {
-                        const batch = chunks.slice(i, i + batchSize);
+
+                    // Process chunks in parallel with a concurrency limit
+                    const batchSize = 100; // Adjust based on system limits
+                    const processBatch = async (batch: ExtractChunkData[]) => {
                         const batchResults = await Promise.all(
                             batch.map(async chunk => {
-                                // Check if topics and entities are already cached in metadata
+                                // Use cached metadata if available
                                 if (chunk.metadata?.topics && chunk.metadata?.entities) {
                                     return {
                                         topics: JSON.parse(chunk.metadata.topics as string),
                                         entities: JSON.parse(chunk.metadata.entities as string)
                                     };
-                                } else {
-                                    // Extract topics and entities if not cached
-                                    const result = await this.extractTopicsAndEntities(chunk.pageContent);
-
-                                    // Cache the result in the chunk metadata
-                                    chunk.metadata = {
-                                        ...chunk.metadata,
-                                        topics: JSON.stringify(result.topics),
-                                        entities: JSON.stringify(result.entities)
-                                    };
-                                    return result;
                                 }
+
+                                // Extract topics and entities if not cached
+                                const result = await this.extractTopicsAndEntities(chunk.pageContent);
+
+                                // Cache the result in the chunk metadata
+                                chunk.metadata = {
+                                    ...chunk.metadata,
+                                    topics: JSON.stringify(result.topics),
+                                    entities: JSON.stringify(result.entities)
+                                };
+                                return result;
                             })
                         );
 
@@ -323,22 +322,27 @@ export class SetOfDbs implements BaseDb {
                                 entitiesMap.set(entity, (entitiesMap.get(entity) || 0) + (weight as number));
                             }
                         });
+                    };
+
+                    // Process chunks in batches
+                    for (let i = 0; i < chunks.length; i += batchSize) {
+                        await processBatch(chunks.slice(i, i + batchSize));
                     }
-    
-                    return { 
-                        db, 
+
+                    return {
+                        db,
                         topics: Object.fromEntries(topicsMap), // Convert Map to object
                         entities: Object.fromEntries(entitiesMap) // Convert Map to object
                     };
                 })
             );
-    
+
             // Step 3: Calculate relevance scores
             const scoredSources = sourceTopicEntities.map(({ db, topics, entities }) => {
                 const relevanceScore = this.computeRelevanceScore(topics, entities, queryTopicsAndEntities);
                 return { db, relevanceScore };
             });
-    
+
             // Step 4: Retrieve chunks from the top k sources
             const results = await this.retrieveChunks(scoredSources, query, k);
             return results;
