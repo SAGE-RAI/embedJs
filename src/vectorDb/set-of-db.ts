@@ -421,10 +421,9 @@ export class SetOfDbs implements BaseDb {
     
                 if (!embeddingRelevance.length) return { db, similarity: -Infinity };
     
-                // Calculate similarity
                 return {
                     db,
-                    similarity: this.euclideanDistance(normalizedQuery, this.normalize(embeddingRelevance))
+                    similarity: Math.max(0, Math.min(1, 1 - (this.euclideanDistance(normalizedQuery, this.normalize(embeddingRelevance))))) // Normalize to [0, 1]
                 };
             });
     
