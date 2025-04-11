@@ -417,7 +417,7 @@ export class SetOfDbs implements BaseDb {
                             batch.map(async (chunk) => {
                                 try {
                                     // Summarize the chunk
-                                    return await this.summarizeText(chunk.pageContent, rawQuery, true);
+                                    return await this.summarizeText(chunk.pageContent, rawQuery, false);
                                 } catch (error) {
                                     this.debug('Error summarizing chunk:', error);
                                     return ''; // Fallback to an empty summary for failed chunks
