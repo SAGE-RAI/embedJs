@@ -46,7 +46,9 @@ export class SetOfDbs implements BaseDb {
 
     async similaritySearch(query: number[], k: number, rawQuery?: string): Promise<ExtractChunkData[]> {
         // apply strategy for similarity search
-        k = this.numberK; // override the k
+        if (this.numberK) {
+            k = this.numberK; // override the k
+        }
         switch (this.currentStrategy) {
             case 'topKNChunks':
                 return await this.similaritySearchTopKNChunksStrategy(query, k);
