@@ -10,12 +10,14 @@ export class HuggingFace extends BaseModel {
     private readonly modelName: string;
     private readonly maxNewTokens: number;
     private readonly endpointUrl?: string;
+    private readonly apiKey?: string;
     private model: HuggingFaceInference;
 
-    constructor(params?: { modelName?: string; temperature?: number; maxNewTokens?: number; endpointUrl?: string }) {
+    constructor(params?: { modelName?: string; temperature?: number; maxNewTokens?: number; endpointUrl?: string, apiKey?: string }) {
         super(params?.temperature);
 
         this.endpointUrl = params?.endpointUrl;
+        this.apiKey = params?.apiKey;
         this.maxNewTokens = params?.maxNewTokens ?? 300;
         this.modelName = params?.modelName ?? 'mistralai/Mixtral-8x7B-Instruct-v0.1';
     }
@@ -23,6 +25,7 @@ export class HuggingFace extends BaseModel {
     override async init(): Promise<void> {
         this.model = new HuggingFaceInference({
             model: this.modelName,
+            apiKey: this.apiKey,
             maxTokens: this.maxNewTokens,
             temperature: this.temperature,
             endpointUrl: this.endpointUrl,
