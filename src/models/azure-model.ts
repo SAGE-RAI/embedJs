@@ -33,6 +33,8 @@ export class AzureAIInferenceModel extends BaseModel {
         userQuery: string,
         supportingContext: Chunk[],
         pastConversations: Message[],
+        userId?: string, 
+        instanceId?: string
     ): Promise<string> {
         const pastMessages = [
             {
@@ -87,9 +89,14 @@ export class AzureAIInferenceModel extends BaseModel {
                 return response.body;
             },
             {
-                run_type: "llm",
+                run_type: "LLM",
                 name: "ChatAzureAI",
-                metadata: { ls_provider: "azure-ai-inference", ls_model_name: "azure_model", ls_model_type: "chat", ls_temperature: this.temperature },
+                metadata: { ls_provider: "azure-ai-inference", 
+                    ls_model_name: "azure_model", 
+                    ls_model_type: "chat", 
+                    ls_temperature: this.temperature, 
+                    ls_instance: instanceId || "undefined", 
+                    ls_user: userId || "undefined" },
             }
         );
 
