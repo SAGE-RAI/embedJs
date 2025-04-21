@@ -360,7 +360,9 @@ export class RAGApplication {
     public async query(
         userQuery: string,
         conversationId?: string,
-        context?: Chunk[]
+        context?: Chunk[],
+        userId?: string,
+        instanceId?: string
     ): Promise<ConversationEntry> {
         if (!this.model) {
             throw new Error('LLM Not set; query method not available');
@@ -374,7 +376,7 @@ export class RAGApplication {
             `Query resulted in ${context.length} chunks after filteration; chunks from ${sources.length} unique sources.`,
         );
 
-        var result = await this.model.query(this.queryTemplate, userQuery, context, conversationId)
+        var result = await this.model.query(this.queryTemplate, userQuery, context, conversationId, userId, instanceId)
 
         return result;
     }
@@ -439,6 +441,4 @@ export class RAGApplication {
         const [embedding] = await RAGEmbedding.getEmbedding().embedDocuments([text]);
         return embedding;
     }
-
-
 }
