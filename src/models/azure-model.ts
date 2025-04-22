@@ -95,8 +95,8 @@ export class AzureAIInferenceModel extends BaseModel {
                     ls_model_name: "azure_model", 
                     ls_model_type: "chat", 
                     ls_temperature: this.temperature, 
-                    ls_instance: instanceId || "undefined", 
-                    ls_user: userId || "undefined" },
+                    ls_instance: instanceId, 
+                    ls_user: userId},
             }
         );
 
