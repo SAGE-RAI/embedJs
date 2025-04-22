@@ -87,6 +87,8 @@ export abstract class BaseModel {
         userQuery: string,
         supportingContext: Chunk[],
         conversationId: string = 'default',
+        userId?: string,
+        instanceId?: string
     ): Promise<any> {
         const conversation = await BaseModel.conversations.getConversation(conversationId); // Use static property
 
@@ -95,7 +97,7 @@ export abstract class BaseModel {
         // Extract only the content from each entry in the conversation
         const pastConversations = conversation.entries.map(entry => entry.content);
 
-        const result = await this.runQuery(system, userQuery, supportingContext, pastConversations);
+        const result = await this.runQuery(system, userQuery, supportingContext, pastConversations, userId, instanceId);
 
         return result;
     }

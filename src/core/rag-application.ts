@@ -405,7 +405,9 @@ export class RAGApplication {
         userQuery: string,
         systemQuery?: string,
         conversationId: string = 'default',
-        context?: Chunk[]
+        context?: Chunk[], 
+        userId?: string,
+        instanceId?: string
     ): Promise<any> {
         if (!this.model) {
             throw new Error('LLM Not set; query method not available');
@@ -422,7 +424,7 @@ export class RAGApplication {
         // Use a default query template if systemQuery is not provided
         systemQuery = systemQuery || this.queryTemplate;
 
-        const result = await this.model.silentConversationQuery(systemQuery, userQuery, context, conversationId);
+        const result = await this.model.silentConversationQuery(systemQuery, userQuery, context, conversationId, userId, instanceId);
 
         return result;
     }
