@@ -32,9 +32,7 @@ export class AzureAIInferenceModel extends BaseModel {
         system: string,
         userQuery: string,
         supportingContext: Chunk[],
-        pastConversations: Message[],
-        userId?: string, 
-        instanceId?: string
+        pastConversations: Message[]
     ): Promise<string> {
         const pastMessages = [
             {
@@ -94,9 +92,7 @@ export class AzureAIInferenceModel extends BaseModel {
                 metadata: { ls_provider: "azure-ai-inference", 
                     ls_model_name: "azure_model", 
                     ls_model_type: "chat", 
-                    ls_temperature: this.temperature, 
-                    instance: instanceId, 
-                    user: userId}
+                    ls_temperature: this.temperature}
             }
         );
 
@@ -105,4 +101,3 @@ export class AzureAIInferenceModel extends BaseModel {
         return result;
     }
 }
-// so at some point the new instanceid and user becomes undefined and i think thats why this is not working
