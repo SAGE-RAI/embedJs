@@ -321,8 +321,9 @@ export class RAGApplication {
      */
     public async getEmbeddings(cleanQuery: string) {
         const queryEmbedded = await RAGEmbedding.getEmbedding().embedQuery(cleanQuery);
-        const unfilteredResultSet = await this.vectorDb.similaritySearch(queryEmbedded, this.searchResultCount + 10, cleanQuery); // added the rawQuery for strategy
+        const unfilteredResultSet = await this.vectorDb.similaritySearch(queryEmbedded, this.searchResultCount + 10);
         this.debug(`Query resulted in ${unfilteredResultSet.length} chunks before filteration...`);
+
         return unfilteredResultSet
             .filter((result) => result.score > this.embeddingRelevanceCutOff)
             .sort((a, b) => b.score - a.score)
@@ -360,9 +361,7 @@ export class RAGApplication {
     public async query(
         userQuery: string,
         conversationId?: string,
-        context?: Chunk[],
-        userId?: string,
-        instanceId?: string
+        context?: Chunk[]
     ): Promise<ConversationEntry> {
         if (!this.model) {
             throw new Error('LLM Not set; query method not available');
@@ -376,7 +375,7 @@ export class RAGApplication {
             `Query resulted in ${context.length} chunks after filteration; chunks from ${sources.length} unique sources.`,
         );
 
-        var result = await this.model.query(this.queryTemplate, userQuery, context, conversationId, userId, instanceId);
+        var result = await this.model.query(this.queryTemplate, userQuery, context, conversationId);
 
         return result;
     }
@@ -405,9 +404,7 @@ export class RAGApplication {
         userQuery: string,
         systemQuery?: string,
         conversationId: string = 'default',
-        context?: Chunk[],
-        userId?: string,
-        instanceId?: string
+        context?: Chunk[]
     ): Promise<any> {
         if (!this.model) {
             throw new Error('LLM Not set; query method not available');
@@ -424,23 +421,10 @@ export class RAGApplication {
         // Use a default query template if systemQuery is not provided
         systemQuery = systemQuery || this.queryTemplate;
 
-        const result = await this.model.silentConversationQuery(systemQuery, userQuery, context, conversationId, userId, instanceId);
+        const result = await this.model.silentConversationQuery(systemQuery, userQuery, context, conversationId);
 
         return result;
     }
 
-    /**
-     * Retrieves the embedding for a given text.
-     *
-     * This method allows you to obtain the embedding vector directly from a text string
-     * without processing loaders or executing a full query.
-     *
-     * @param {string} text - The text to be embedded.
-     * @returns {Promise<number[]>} A Promise that resolves to the embedding vector.
-     */
-    public async getTextEmbedding(text: string): Promise<number[]> {
-        // Here we use the embedDocuments method with a single-element array and return the first result.
-        const [embedding] = await RAGEmbedding.getEmbedding().embedDocuments([text]);
-        return embedding;
-    }
+
 }

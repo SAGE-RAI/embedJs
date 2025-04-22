@@ -33,8 +33,6 @@ export abstract class BaseModel {
         userQuery: string,
         supportingContext: Chunk[],
         conversationId: string = 'default',
-        userId?: string,
-        instanceId?: string
     ): Promise<any> {
         const conversation = await BaseModel.conversations.getConversation(conversationId); // Use static property
 
@@ -47,7 +45,7 @@ export abstract class BaseModel {
         // Extract only the content from each entry in the conversation
         const pastConversations = conversation.entries.map(entry => entry.content);
 
-        const result = await this.runQuery(system, userQuery, supportingContext, pastConversations, userId, instanceId);
+        const result = await this.runQuery(system, userQuery, supportingContext, pastConversations);
 
         // Add user query to history
         await BaseModel.conversations.addEntryToConversation(conversationId, {
@@ -86,9 +84,7 @@ export abstract class BaseModel {
         system: string,
         userQuery: string,
         supportingContext: Chunk[],
-        conversationId: string = 'default',
-        userId?: string,
-        instanceId?: string
+        conversationId: string = 'default'
     ): Promise<any> {
         const conversation = await BaseModel.conversations.getConversation(conversationId); // Use static property
 
@@ -97,7 +93,7 @@ export abstract class BaseModel {
         // Extract only the content from each entry in the conversation
         const pastConversations = conversation.entries.map(entry => entry.content);
 
-        const result = await this.runQuery(system, userQuery, supportingContext, pastConversations, userId, instanceId);
+        const result = await this.runQuery(system, userQuery, supportingContext, pastConversations);
 
         return result;
     }
@@ -143,7 +139,5 @@ export abstract class BaseModel {
         userQuery: string,
         supportingContext: Chunk[],
         pastConversations: Message[],
-        userId?: string,
-        instanceId?: string,
     ): Promise<any>;
 }
