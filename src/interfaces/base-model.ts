@@ -138,6 +138,6 @@ export abstract class BaseModel {
         system: string,
         userQuery: string,
         supportingContext: Chunk[],
-        pastConversations: Message[]
+        pastConversations: Message[],
     ): Promise<any>;
 }

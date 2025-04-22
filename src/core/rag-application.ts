@@ -360,7 +360,7 @@ export class RAGApplication {
     public async query(
         userQuery: string,
         conversationId?: string,
-        context?: Chunk[],
+        context?: Chunk[]
     ): Promise<ConversationEntry> {
         if (!this.model) {
             throw new Error('LLM Not set; query method not available');
