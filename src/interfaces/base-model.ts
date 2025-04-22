@@ -144,6 +144,6 @@ export abstract class BaseModel {
         supportingContext: Chunk[],
         pastConversations: Message[],
         userId?: string,
-        instanceId?: string
+        instanceId?: string,
     ): Promise<any>;
 }
