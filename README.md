@@ -542,6 +542,7 @@ endpoint URI and an API key, which you can get by deploying a supported model in
 ```TS
 const ragApplication = await new RAGApplicationBuilder()
 .setModel(new AzureAIInferenceModel({ 
+    modelName: "<YOUR_MODEL_NAME_HERE>", 
     endpointUrl: "<YOUR_ENDPOINT_URL_HERE>",
     apiKey: "<YOUR_API_KEY_HERE>" 
     temperature: 0.2, // or whatever temperature you'd like
