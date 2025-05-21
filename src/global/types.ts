@@ -58,7 +58,8 @@ export type ConversationEntry = {
     _id: string;
     timestamp: Date;
     content: Message;
-    sources: Sources[]
+    sources: Sources[];
+    chunks: string[];
 }
 
 export type Sources = {

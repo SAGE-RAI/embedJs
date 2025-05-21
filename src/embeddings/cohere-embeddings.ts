@@ -5,9 +5,10 @@ import { BaseEmbeddings } from '../interfaces/base-embeddings.js';
 export class CohereEmbeddings implements BaseEmbeddings {
     private model: LangChainCohereEmbeddings;
 
-    constructor() {
+    constructor(apiKey: string, modelName: string) {
         this.model = new LangChainCohereEmbeddings({
-            model: 'embed-english-v2.0',
+            model: modelName ?? 'embed-english-v2.0',
+            apiKey: apiKey, 
             maxConcurrency: 3,
             maxRetries: 5,
         });

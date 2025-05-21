@@ -74,6 +74,7 @@
         "debug": "^4.3.5",
         "html-to-text": "^9.0.5",
         "langchain": "^0.2.5",
+        "langsmith": "^0.1.48",
         "md5": "^2.3.0",
         "mime": "^4.0.3",
         "office-text-extractor": "^3.0.3",

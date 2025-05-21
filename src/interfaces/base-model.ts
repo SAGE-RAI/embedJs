@@ -40,6 +40,8 @@ export abstract class BaseModel {
 
         const uniqueSources = this.extractUniqueSources(supportingContext);
 
+        const chunksIds = this.extractChunkIds(supportingContext);
+
         // Extract only the content from each entry in the conversation
         const pastConversations = conversation.entries.map(entry => entry.content);
 
@@ -53,7 +55,8 @@ export abstract class BaseModel {
                 sender: 'HUMAN',
                 message: userQuery
             },
-            sources: []
+            sources: [],
+            chunks: []
         });
 
         const newEntry: ConversationEntry = {
@@ -63,12 +66,36 @@ export abstract class BaseModel {
                 sender: "AI",
                 message: result
             },
-            sources: uniqueSources
+            sources: uniqueSources,
+            chunks: chunksIds
         }
         // Add AI response to history
         await BaseModel.conversations.addEntryToConversation(conversationId, newEntry);
 
         return newEntry;
+    }
+
+    /*
+     * silentConversationQuery
+     * Do a query based upon the conversation history, but do not add the query or the response to the conversation.
+     * This can be used to ask the LLM about the conversation, e.g. if the topic has changed or newer chunks are required etc.
+     */
+    public async silentConversationQuery(
+        system: string,
+        userQuery: string,
+        supportingContext: Chunk[],
+        conversationId: string = 'default',
+    ): Promise<any> {
+        const conversation = await BaseModel.conversations.getConversation(conversationId); // Use static property
+
+        this.baseDebug(`${conversation.entries.length} history entries found for conversationId '${conversationId}'`);
+
+        // Extract only the content from each entry in the conversation
+        const pastConversations = conversation.entries.map(entry => entry.content);
+
+        const result = await this.runQuery(system, userQuery, supportingContext, pastConversations);
+
+        return result;
     }
 
     private extractUniqueSources(supportingContext: Chunk[]): Sources[] {
@@ -89,6 +116,22 @@ export abstract class BaseModel {
 
         // Convert the values of the Map to an array
         return Array.from(uniqueSources.values());
+    }
+
+    private extractChunkIds(supportingContext: Chunk[]): string[] {
+        // Create a Set to track unique chunk IDs
+        const chunkIds = new Set<string>();
+
+        supportingContext.forEach(item => {
+            const { metadata } = item;
+            if (metadata && metadata.id) {
+                // Add the chunk ID to the Set (automatically handles uniqueness)
+                chunkIds.add(metadata.id);
+            }
+        });
+
+        // Convert the Set to an array
+        return Array.from(chunkIds);
     }
 
     protected abstract runQuery(

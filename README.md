@@ -488,6 +488,13 @@ const ragApplication = await new RAGApplicationBuilder()
 .setModel(new OpenAi({ modelName: 'gpt-4' }))
 ```
 
+- To use an API key other than the one set in OPENAI_API_KEY (e.g., to use different OpenAI-compatible embedding and generation services)
+
+```TS
+const ragApplication = await new RAGApplicationBuilder()
+.setModel(new OpenAi({ modelName: 'gpt-4', apiKey: "<Your key>" }))
+```
+
 -   To use a custom model name and a custom base URL for an OpenAI-compatible API
 
 ```TS
@@ -691,6 +698,15 @@ The library supports the following embedding models -
 
 The `text-embedding-3-small` is a new standard embedding model released by OpenAI in Jan, 2024. It is the default used by the libary. This model is cheaper and better than their older Ada model. This model returns vectors with dimension 1536.
 
+- To use an API key other than the one set in OPENAI_API_KEY (e.g., to use different OpenAI-compatible embedding and 
+generation services)
+
+```TS
+
+const ragApplication = await new RAGApplicationBuilder()
+.setEmbeddingModel(new OpenAi3SmallEmbeddings({ apiKey: "<Your key>" }))
+```
+
 You do not have to do anything to enable it.
 
 ## OpenAI v3 Large
@@ -708,6 +724,13 @@ await new RAGApplicationBuilder()
 .setEmbeddingModel(new OpenAi3LargeEmbeddings())
 ```
 
+-  To use an API key other than the one set in OPENAI_API_KEY (e.g., to use different OpenAI-compatible embedding and generation services)
+
+```TS
+const ragApplication = await new RAGApplicationBuilder()
+.setEmbeddingModel(new OpenAi3LargeEmbeddings({ apiKey: "<Your key>" }))
+```
+
 ## OpenAI Generic
 
 To support OpenAI-compatible API implementations with arbitrary embedding models, use the OpenAIGenericEmbeddings model, which allows you to specify a model name, base URL, and the dimensions of the returned vectors.
@@ -721,6 +744,15 @@ import { OpenAIGenericEmbeddings } from '@llm-tools/embedjs';
 
 await new RAGApplicationBuilder()
 .setEmbeddingModel(new OpenAIGenericEmbeddings({ modelName: '[YOUR_EMBEDDING_MODEL_NAME]', baseURL: '[YOUR_BASE_URL]', dimensions: YOUR_VECTOR_SIZE }))
+```
+
+-  To use an API key other than the one set in OPENAI_API_KEY (e.g., to use different OpenAI-compatible embedding and generation services)
+
+```TS
+import { OpenAIGenericEmbeddings } from '@llm-tools/embedjs';
+
+await new RAGApplicationBuilder()
+.setEmbeddingModel(new OpenAIGenericEmbeddings({ modelName: '[YOUR_EMBEDDING_MODEL_NAME]', baseURL: '[YOUR_BASE_URL]', apiKey: "<Your key>", dimensions: YOUR_VECTOR_SIZE }))
 ```
 
 ## Ada
