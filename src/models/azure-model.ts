@@ -7,15 +7,17 @@ import { AzureKeyCredential } from '@azure/core-auth';
 
 export class AzureAIInferenceModel extends BaseModel {
     private readonly debug = createDebugMessages('embedjs:model:AzureAIInference');
-
+    
+    private readonly modelName: string;
     private readonly maxNewTokens: number;
     private readonly endpointUrl?: string;
     private readonly apiKey?: string;
     private model: any;
 
-    constructor(params?: { temperature?: number; maxNewTokens?: number; endpointUrl?: string; apiKey?: string }) {
+    constructor(params?: { modelName?: string; temperature?: number; maxNewTokens?: number; endpointUrl?: string; apiKey?: string }) {
         super(params?.temperature);
 
+        this.modelName = params?.modelName ?? 'Meta-Llama-3-70B-Instruct';
         this.endpointUrl = params?.endpointUrl;
         this.apiKey = params?.apiKey;
         this.maxNewTokens = params?.maxNewTokens ?? 300;
@@ -69,9 +71,10 @@ export class AzureAIInferenceModel extends BaseModel {
 
         const finalPrompt = pastMessages//.join('\n');
         // this.debug('Final prompt being sent to Azure - ', finalPrompt);
-        this.debug(`Executing Azure AI Inference '${this.endpointUrl}' model with prompt -`, userQuery);
+        this.debug(`Executing Azure AI Inference '${this.modelName}' model with prompt -`, userQuery);
         const response = await this.model.path("chat/completions").post({
              body: {
+                model: this.modelName,
                 messages: finalPrompt,
                 max_tokens: this.maxNewTokens,
                 temperature: this.temperature
